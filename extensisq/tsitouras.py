@@ -8,7 +8,7 @@ class Ts45(RungeKutta):
 
     This method only differs from RK45 (scipy default) by the values of its 
     coefficients. These coefficients have been derived with fewer simplifying 
-    assumptions [1]_. This resuls in an increased efficiency in most cases.
+    assumptions [1]_. This results in an increased efficiency in most cases.
 
     Can be applied in the complex domain.
 
