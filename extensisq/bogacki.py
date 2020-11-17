@@ -15,7 +15,7 @@ class BS45(RungeKutta):
     
     The interpolator for dense output is of fifth order and needs three 
     additional derivative function evaluations (when used). A free, fourth 
-    order interpolator is also available; see dense_output_order below.
+    order interpolator is also available as method BS45_i.
     
     Can be applied in the complex domain.
 
@@ -54,12 +54,6 @@ class BS45(RungeKutta):
         1e-3 for `rtol` and 1e-6 for `atol`.
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. Default is False.
-    dense_output_order : {'high', 'low'}, optional
-        For 'high', the high quality fifth order interpolator from [1]_ is used 
-        for dense output. This requires extra evaluations of `fun` when used. 
-        For 'low', a free 4th order interpolator is used. It was constructed 
-        following [3]_. This option can be useful when low quality interpolation 
-        is acceptable (e.g. smooth plotting). The default setting is 'high'.
 
     Attributes
     ----------
@@ -94,16 +88,13 @@ class BS45(RungeKutta):
            pp. 15-28, ISSN 0898-1221.
            https://doi.org/10.1016/0898-1221(96)00141-1
     .. [2] RKSUITE: https://www.netlib.org/ode/rksuite/
-    .. [3] Ch. Tsitouras, "Runge-Kutta pairs of order 5(4) satisfying only the 
-           first column simplifying assumption", Computers & Mathematics with 
-           Applications, Vol. 62, No. 2, pp. 770 - 775, 2011.
-           https://doi.org/10.1016/j.camwa.2011.06.002
     """
     
     order = 5
     error_estimator_order = 4
     n_stages = 7        # the effective nr (total nr of stages is 8)
     n_extra_stages = 3  # for dense output
+    dense_output_order = 'high'
     
     
     # time step fractions
@@ -131,7 +122,7 @@ class BS45(RungeKutta):
     A = A[:-1,:].copy()
     
     # coefficients for first error estimation method
-    E1 = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95, 0, 0])
+    E1 = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95])
     
     # coefficients for second error estimation method
     E2 = np.array([2479/34992, 0, 123/416, 612941/3411720, 43/1440, 2272/6561, 
@@ -183,7 +174,7 @@ class BS45(RungeKutta):
     
     # Bogacki published a free interpolant in his thesis, but I was not able to
     # find a copy of it. Instead, I constructed an interpolant using sympy and 
-    # the approach in [3]_.
+    # the approach in [3]_ (docstring of BS45_i).
     # This free 4th order interpolant has a leading error term ||T5|| that has 
     # maximum in [0,1] of 5.47 e-4. This is higher than the corresponding term
     # of the embedded fourth order method: 1.06e-4.
@@ -204,17 +195,13 @@ class BS45(RungeKutta):
         [0, -38480331/36476731, 226874786/36476731, -374785310/36476731, 
             186390855/36476731]])
     
-    
-    def __init__(self, fun, t0, y0, t_bound, dense_output_order='high', 
-            **extraneous):
+    def __init__(self, fun, t0, y0, t_bound, **extraneous):
         super(BS45, self).__init__(fun, t0, y0, t_bound, **extraneous)
         # custom initialization to create extended storage for dense output
         # and to make the interpolator selectable
         self.K_extended = np.zeros((self.n_stages+self.n_extra_stages+1, 
                 self.n), dtype=self.y.dtype)
-        self.K = self.K_extended[:self.n_stages+1]
-        self.dense_output_order = dense_output_order
-        
+        self.K = self.K_extended[:self.n_stages+1]        
     
     def _step_impl(self):
         # modified to include two error estimators. This saves two function 
@@ -305,21 +292,17 @@ class BS45(RungeKutta):
         self.f = f_new
         return True, None
     
-    
     def _rk_stage(self, h, i):
         dy = np.dot(self.K[:i,:].T, self.A[i,:i]) * h
         self.K[i] = self.fun(self.t + self.C[i]*h, self.y + dy)
     
-    
     def _estimate_error(self, E, h):
         # pass E instead of K
-        return np.dot(self.K.T, E) * h
-    
+        return np.dot(self.K[:E.size,:].T, E) * h
     
     def _estimate_error_norm(self, E, h, scale):
         # pass E instead of K
         return norm(self._estimate_error(E, h) / scale)
-    
     
     def _dense_output_impl(self):
         
@@ -371,6 +354,92 @@ class BS45(RungeKutta):
                 f" not{self.dense_output_order}.")
 
 
+class BS45_i(BS45):
+    """As BS45, but with free 4th order interpolant for dense output. Suffix _i
+    for interpolant.
+    
+    The source [1]_ refers to the thesis of Bogacki for a free interpolant, but 
+    this could not be found. Instead, the interpolant is constructed following 
+    the steps in [3]_. 
+
+    Parameters
+    ----------
+    fun : callable
+        Right-hand side of the system. The calling signature is ``fun(t, y)``.
+        Here ``t`` is a scalar, and there are two options for the ndarray ``y``:
+        It can either have shape (n,); then ``fun`` must return array_like with
+        shape (n,). Alternatively it can have shape (n, k); then ``fun``
+        must return an array_like with shape (n, k), i.e., each column
+        corresponds to a single column in ``y``. The choice between the two
+        options is determined by `vectorized` argument (see below).
+    t0 : float
+        Initial time.
+    y0 : array_like, shape (n,)
+        Initial state.
+    t_bound : float
+        Boundary time - the integration won't continue beyond it. It also
+        determines the direction of the integration.
+    first_step : float or None, optional
+        Initial step size. Default is ``None`` which means that the algorithm
+        should choose.
+    max_step : float, optional
+        Maximum allowed step size. Default is np.inf, i.e., the step size is not
+        bounded and determined solely by the solver.
+    rtol, atol : float and array_like, optional
+        Relative and absolute tolerances. The solver keeps the local error
+        estimates less than ``atol + rtol * abs(y)``. Here `rtol` controls a
+        relative accuracy (number of correct digits). But if a component of `y`
+        is approximately below `atol`, the error only needs to fall within
+        the same `atol` threshold, and the number of correct digits is not
+        guaranteed. If components of y have different scales, it might be
+        beneficial to set different `atol` values for different components by
+        passing array_like with shape (n,) for `atol`. Default values are
+        1e-3 for `rtol` and 1e-6 for `atol`.
+    vectorized : bool, optional
+        Whether `fun` is implemented in a vectorized fashion. Default is False.
+
+    Attributes
+    ----------
+    n : int
+        Number of equations.
+    status : string
+        Current status of the solver: 'running', 'finished' or 'failed'.
+    t_bound : float
+        Boundary time.
+    direction : float
+        Integration direction: +1 or -1.
+    t : float
+        Current time.
+    y : ndarray
+        Current state.
+    t_old : float
+        Previous time. None if no steps were made yet.
+    step_size : float
+        Size of the last successful step. None if no steps were made yet.
+    nfev : int
+        Number evaluations of the system's right-hand side.
+    njev : int
+        Number of evaluations of the Jacobian. Is always 0 for this solver as 
+        it does not use the Jacobian.
+    nlu : int
+        Number of LU decompositions. Is always 0 for this solver.
+
+    References
+    ----------
+    .. [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair",
+           Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, 
+           pp. 15-28, ISSN 0898-1221.
+           https://doi.org/10.1016/0898-1221(96)00141-1
+    .. [2] RKSUITE: https://www.netlib.org/ode/rksuite/
+    .. [3] Ch. Tsitouras, "Runge-Kutta pairs of order 5(4) satisfying only the 
+           first column simplifying assumption", Computers & Mathematics with 
+           Applications, Vol. 62, No. 2, pp. 770 - 775, 2011.
+           https://doi.org/10.1016/j.camwa.2011.06.002
+    """
+    
+    dense_output_order = 'low'
+
+
 class HornerDenseOutput(RkDenseOutput):
     """use Horner's rule for the evaluation of the polynomials"""
     def _call_impl(self, t):
@@ -388,4 +457,4 @@ class HornerDenseOutput(RkDenseOutput):
         y *= self.h
         y += self.y_old[:,np.newaxis]
         return y
-    
+
