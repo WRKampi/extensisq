@@ -210,10 +210,7 @@ class BS45(RungeKutta):
         
         t = self.t
         y = self.y
-        y_old = self.y_old
-        if y_old is None:                                   # None at start
-            y_old = y + np.finfo(float).eps * self.direction * self.f
-        rtol = self.rtol                                    
+        rtol = self.rtol
         atol = self.atol
         
         max_step = self.max_step
@@ -224,6 +221,11 @@ class BS45(RungeKutta):
             h_abs = min_step
         else:
             h_abs = self.h_abs
+        
+        # y_old is used for first error assessment, it starts at None
+        y_old = self.y_old
+        if y_old is None:
+            y_old = y - self.direction h_abs * self.f
         
         step_accepted = False
         step_rejected = False
