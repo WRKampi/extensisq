@@ -344,15 +344,13 @@ class BS45(RungeKutta):
             # The call is modified accordingly:
             return HornerDenseOutput(self.t, self.t+h, self.y, Q)
         
-        elif self.dense_output_order=='low':
+        else:                                   # self.dense_output_order=='low'
+            # for BS45_i 
             # as usual:
             Q = self.K.T.dot(self.Pfree)
             return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
         
-        else:
-            raise ValueError("`dense_output_order` must be 'high' or 'low',"
-                f" not{self.dense_output_order}.")
-
+    
 
 class BS45_i(BS45):
     """As BS45, but with free 4th order interpolant for dense output. Suffix _i
