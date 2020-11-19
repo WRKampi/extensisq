@@ -225,7 +225,7 @@ class BS45(RungeKutta):
         # y_old is used for first error assessment, it starts at None
         y_old = self.y_old
         if y_old is None:
-            y_old = y - self.direction h_abs * self.f
+            y_old = y - self.direction * h_abs * self.f
         
         step_accepted = False
         step_rejected = False
