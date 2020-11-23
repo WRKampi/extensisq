@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate._ivp.rk import RungeKutta, RkDenseOutput, norm, rk_step
+from scipy.integrate._ivp.rk import RungeKutta, RkDenseOutput, norm
 
 
 SAFETY = 0.9
@@ -7,23 +7,22 @@ MIN_FACTOR = 1/5
 MAX_FACTOR = 5
 
 
-
 class CK45(RungeKutta):
     """Cash Karp variable order (5, 3, 2) runge kutta method with error 
     estimators of order (4, 2, 1). This method is created to efficiently solve 
     non-smooth problems [1]_. Interpolants for dense output have been added.
     
-    Order 5 is preferred. Whether this high order can be successfuly reached in 
-    the current step is predicted multiple times between the evaluations of the 
-    derivative function. After the first failed prediction, propagation with 
-    fallback solutions of reduced oredr and step size is assessed. These 
-    fallback solutions do not need extra derivative evaluations.
+    The method prefers order 5. Whether this high order can be successfuly 
+    reached in the current step is predicted multiple times between the 
+    evaluations of the derivative function. After the first failed prediction, 
+    propagation with fallback solutions of reduced order and step size is 
+    assessed. These fallback solutions do not need extra derivative evaluations.
+    
+    Can be applied in the complex domain.
     
     A fixed order (4,5) method with the Cash Karp parameters is available as
     CK45_o.
     
-    Can be applied in the complex domain.
-
     Parameters
     ----------
     fun : callable
@@ -103,10 +102,6 @@ class CK45(RungeKutta):
     order = 5                                               # for main method
     error_estimator_order = 4                               # for main method
     
-    # weighing factors, these are adaptively changed
-    twiddle = np.array([1.5, 1.1])                          # starting values
-    quit = np.array([100., 100.])                           # starting values
-    
     # time step fractions
     C = np.array([0, 1/5, 3/10, 3/5, 1, 7/8])
     
@@ -169,6 +164,9 @@ class CK45(RungeKutta):
         super(CK45, self).__init__(fun, t0, y0, t_bound, **extraneous)
         # prevent possible nan or inf in K that may interfere with interpolator:
         self.K[:,:] = 0.
+        # weighing factors, these are adaptively changed
+        self.twiddle = np.array([1.5, 1.1])                          # starting values
+        self.quit = np.array([100., 100.])                           # starting values
     
     def _step_impl(self):
         t = self.t
@@ -344,6 +342,15 @@ class CK45(RungeKutta):
             P = self.P_fallback[self.order_accepted-1]
         Q = self.K.T.dot(P)
         return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
+    
+    def _estimate_error(self, K, h):
+        # only used for testing
+        return self._compute_error(h, self.E, 6)
+    
+    def _estimate_error_norm(self, K, h, scale):
+        # only used for testing
+        sol, err, tol = self._comp_sol_err_tol(h, self.B, self.E, i=6)
+        return norm(err/tol)
 
 
 class CK45_o(CK45):

@@ -3,8 +3,8 @@ from scipy.integrate._ivp.rk import RungeKutta
 
 
 class Ts45(RungeKutta):
-    """Explicit Runge-Kutta method of order 5(4), with a free interpolant of 
-    order 4.
+    """Explicit Runge-Kutta method of order 5, with an error estimate of order 4
+    and a free interpolant of order 4.
 
     This method only differs from RK45 (scipy default) by the values of its 
     coefficients. These coefficients have been derived with fewer simplifying 
@@ -151,5 +151,21 @@ if __name__=='__main__':
         P[i,:] = p.coef[1:]
     
     np.set_printoptions(floatmode='unique')
-    print(P)      # P[0,0] needs manual correction
+    #~ print(P)      # P[0,0] needs manual correction
     
+    P[0,0] = 1
+    print(P)
+    
+    
+    print(P.sum(axis=0))
+    B = np.array([0.09646076681806523, 0.01, 0.4798896504144996, 
+        1.379008574103742, -3.290069515436081, 2.324710524099774 ])
+    Ps = P.sum(axis=1)
+    Ps[:-1] -= B
+    #~ print(Ps)
+    
+    #~ print(np.sum(P*(np.arange(P.shape[1])+1), axis=1))
+    
+   
+        
+        

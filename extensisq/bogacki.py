@@ -18,7 +18,7 @@ class BS45(RungeKutta):
     order interpolator is also available as method BS45_i.
     
     Can be applied in the complex domain.
-
+    
     Parameters
     ----------
     fun : callable
@@ -96,11 +96,9 @@ class BS45(RungeKutta):
     n_extra_stages = 3  # for dense output
     dense_output_order = 'high'
     
-    
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1, 1])
     C = C[:-1]    # last one removed to pass unit test and conform to scipy
-    
     
     # coefficient matrix, including row of last stage
     A = np.array([
@@ -201,7 +199,10 @@ class BS45(RungeKutta):
         # and to make the interpolator selectable
         self.K_extended = np.zeros((self.n_stages+self.n_extra_stages+1, 
                 self.n), dtype=self.y.dtype)
-        self.K = self.K_extended[:self.n_stages+1]        
+        self.K = self.K_extended[:self.n_stages+1]
+        # y_old is used for first error assessment, it should not be None
+        self.y_old = self.y - self.direction * self.h_abs * self.f
+        
     
     def _step_impl(self):
         # modified to include two error estimators. This saves two function 
@@ -212,6 +213,7 @@ class BS45(RungeKutta):
         y = self.y
         rtol = self.rtol
         atol = self.atol
+        y_old = self.y_old
         
         max_step = self.max_step
         min_step = 10 * np.abs(np.nextafter(t, self.direction * np.inf) - t)
@@ -221,11 +223,6 @@ class BS45(RungeKutta):
             h_abs = min_step
         else:
             h_abs = self.h_abs
-        
-        # y_old is used for first error assessment, it starts at None
-        y_old = self.y_old
-        if y_old is None:
-            y_old = y - self.direction * h_abs * self.f
         
         step_accepted = False
         step_rejected = False
@@ -320,7 +317,7 @@ class BS45(RungeKutta):
             
             # form Q. Usually: Q = K.T.dot(self.P)
             # but rksuite recommends to group summations to mitigate roundoff:
-            Q = np.empty((K.shape[1], self.P.shape[1]))
+            Q = np.empty((K.shape[1], self.P.shape[1]), dtype=K.dtype)
             Q[:,0] = K[7,:]                                 # term for t**1
             KP = K*self.P[:,1,np.newaxis]                   # term for t**2
             Q[:,1] = ( KP[4]  +  ((KP[5]+KP[7]) + KP[0]) 
@@ -448,7 +445,7 @@ class HornerDenseOutput(RkDenseOutput):
         x = (t - self.t_old) / self.h
         
         # Horner's rule:
-        y = np.zeros((self.Q.shape[0], x.size))
+        y = np.zeros((self.Q.shape[0], x.size), dtype=self.Q.dtype)
         for q in reversed(self.Q.T):
             y += q[:,np.newaxis]
             y *= x
@@ -456,5 +453,9 @@ class HornerDenseOutput(RkDenseOutput):
         # finish:
         y *= self.h
         y += self.y_old[:,np.newaxis]
-        return y
-
+        
+        # need this `if` to pass scipy's unit tests. I'm not sure why.
+        if t.shape:
+            return y
+        else:
+            return y[:,0]
