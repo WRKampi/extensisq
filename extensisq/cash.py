@@ -494,3 +494,184 @@ class CK45_o(CK45):
         self.f = f_new
         return True, None
     
+if __name__ == '__main__':
+    """Construction of a free interpolant of the CK45 pair. The approach from 
+    "Runge-Kutta pairs of order 5(4) satisfying only the first column 
+    simplifying assumption" by Ch Tsitouras is followed."""
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import sympy 
+    from sympy.solvers.solveset import linsolve
+    from sympy import Rational as R
+    from pprint import pprint
+
+    n_stages = 7         # including derivative evaluation at end of step
+    order = 4            # of interpolation in t (not h)
+    T5_method4 = 5e-4    # error of embedded fourth order method
+
+    t = sympy.symbols('t', real=True)
+    bi = sympy.symbols(f'bi0:{n_stages}', real=True)
+    bi_vec = sympy.Matrix(bi)
+
+    # Method
+    A = sympy.Matrix([
+            [0, 0, 0, 0, 0, 0, 0],
+            [R(1,5), 0, 0, 0, 0, 0, 0],
+            [R(3,40), R(9,40), 0, 0, 0, 0, 0],
+            [R(3,10), R(-9,10), R(6,5), 0, 0, 0, 0],
+            [R(-11,54), R(5,2), R(-70,27), R(35,27), 0, 0, 0],
+            [R(1631,55296), R(175,512), R(575,13824), R(44275,110592), 
+                R(253,4096), 0, 0],
+            [R(37,378), 0, R(250,621), R(125,594), 0, R(512,1771), 0]
+        ])     # output stage appended
+    
+    c = sympy.Matrix([0, R(1,5), R(3,10), R(3,5), 1, R(7,8), 1])
+    e = sympy.Matrix([1, 1, 1, 1, 1, 1, 1])
+
+    # error terms up to order 4
+    c2 = c.multiply_elementwise(c)
+    Ac = A*c
+    
+    c3 = c2.multiply_elementwise(c)
+    cAc = c.multiply_elementwise(Ac)
+    Ac2 = A*c2
+    A2c = A*Ac
+    
+    T11 = bi_vec.dot(e)     -  t
+    T21 = bi_vec.dot(c)     -  t**2/2
+
+    T31 = bi_vec.dot(c2)/2  -  t**3/6
+    T32 = bi_vec.dot(Ac)    -  t**3/6
+
+    T41 = bi_vec.dot(c3)/6  -  t**4/24
+    T42 = bi_vec.dot(cAc)   -  t**4/8
+    T43 = bi_vec.dot(Ac2)/2 -  t**4/24
+    T44 = bi_vec.dot(A2c)   -  t**4/24
+    
+    # solve polynomials to let all terms up to order 4 vanish
+    bi_vec_t = sympy.Matrix(linsolve([T11, T21, T31, T32, T41, T42, T43, T44], 
+        bi).args[0])
+    i_free_poly = [i for i, (term, poly) in enumerate(zip(bi_vec_t, bi)) 
+                    if poly == term]
+    free_polys = [bi[i] for i in i_free_poly]
+    print('free polynomials:', free_polys)      # poly bi5 is free to define
+    
+    # Make this free polynommial explicit in t
+    parameters = sympy.symbols([f'bi{i}_0:{order+1}' for i in i_free_poly])
+    polys = []
+    for coefs in parameters:
+        p = 0
+        for i, coef in enumerate(coefs):
+            p = p + coef * t**i
+        polys.append(p)
+    
+    # substitute in bi_vec_t
+    subs_dict = dict(zip(free_polys, polys))
+    bi_vec_t = bi_vec_t.subs(subs_dict)
+    
+    # demand continuity at start and end of step
+    d_bi_vec_t = sympy.diff(bi_vec_t, t)        # derivative
+    # C0 at t=0
+    C0_0 = [eq for eq in bi_vec_t.subs(t,0)]
+    # C0 at t=1
+    C0_1 = [eq for eq in (bi_vec_t.subs(t,1) - A[-1,:].T)] 
+    # C1 at t=0
+    C1_0 = d_bi_vec_t.subs(t,0)
+    C1_0[0] = C1_0[0] - 1
+    C1_0 = [eq for eq in C1_0]
+    # C1 at t=1
+    C1_1 = d_bi_vec_t.subs(t,1)
+    C1_1[-1] = C1_1[-1] - 1
+    C1_1 = [eq for eq in C1_1]
+
+    # combine equations in list
+    eqns = C0_0
+    eqns.extend(C0_1)
+    eqns.extend(C1_0)
+    eqns.extend(C1_1)
+
+    # combine parameters in list
+    params = []
+    for p in parameters:
+        params.extend(p)
+    
+    # solve continuity constraints
+    sol1 = linsolve(eqns, params).args[0]
+    
+    # whych params are still free?
+    free_params = [p for s, p in zip(sol1, params) if s==p]
+    print('free parameters:', free_params)      # free parameter: bi5_4
+    
+    # update bi_vec_t
+    subs_dict = dict(zip(params, sol1))
+    bi_vec_t = bi_vec_t.subs(subs_dict)
+    
+    # find value for free parameter that minimizes the 5th order error terms
+    
+    # error terms of order 5
+    c4 = c3.multiply_elementwise(c)
+    c2Ac = c2.multiply_elementwise(Ac)
+    Ac_Ac = Ac.multiply_elementwise(Ac)
+    cAc2 = c.multiply_elementwise(Ac2)
+    Ac3 = A*c3
+    cA2c = c.multiply_elementwise(A2c)
+    A_cAc = A*cAc
+    A2c2 = A*Ac2
+    A3c = A*A2c
+    
+    T51 = bi_vec_t.dot(c4)/24   -  t**5/120
+    T52 = bi_vec_t.dot(c2Ac)/2  -  t**5/20
+    T53 = bi_vec_t.dot(Ac_Ac)/2 -  t**5/40
+    T54 = bi_vec_t.dot(cAc2)/2  -  t**5/30
+    T55 = bi_vec_t.dot(Ac3)/6   -  t**5/120
+    T56 = bi_vec_t.dot(cA2c)    -  t**5/30
+    T57 = bi_vec_t.dot(A_cAc)   -  t**5/40
+    T58 = bi_vec_t.dot(A2c2)/2  -  t**5/120
+    T59 = bi_vec_t.dot(A3c)     -  t**5/120
+    
+
+    # error norm 5 (omitting square root for simplification)
+    T5_norm_t = (T51**2 + T52**2 + T53**2 + T54**2 + T55**2 + T56**2 + T57**2 
+                + T58**2 + T59**2)
+    T5_norm_i = sympy.integrate(T5_norm_t, (t, 0, 1))
+    
+    # minimize norm -> find root of derivative
+    eqns = []
+    for param in free_params:
+        eqns.append(sympy.diff(T5_norm_i, param))
+    if eqns:
+        sol2 = linsolve(eqns, free_params).args[0]
+    else:
+        sol2 = []
+    print('optimal value of free parameters:', sol2)
+    
+    # update bi_vec_t and norms
+    subs_dict = dict(zip(free_params, sol2))
+    bi_vec_t = bi_vec_t.subs(subs_dict)
+    T5_norm_t = sympy.sqrt(T5_norm_t.subs(subs_dict))   # now take sqrt
+    #~ T5_norm_i = sympy.integrate(T5_norm_t, (t, 0, 1))
+    #~ print('optimal T5 integrated:', T5_norm_i.evalf())
+    
+    # create numerical function for plotting
+    T5_fun = sympy.lambdify(t, T5_norm_t, 'numpy')
+    t_ = np.linspace(0., 1., 101)
+    T5_max = T5_fun(t_).max()
+    print('T_5 max:', T5_max)
+    print('T5 max interp/T5 method:', T5_max.max()/T5_method4)
+    
+    print('resulting interpolant:')
+    pprint(bi_vec_t)
+
+    # plot error
+    plt.plot(t_, T5_fun(t_), label='free 4th order interpolant')
+    plt.axhline(T5_method4, ls='--', label='embedded 4th order method')
+    plt.tight_layout
+    plt.xlim(0,1)
+    plt.ylim(ymin=0)
+    plt.xlabel(r'$\theta$')
+    plt.ylabel(r'$\hat{T}_5$')
+    plt.legend(loc=1)
+    plt.title('free interpolant for CK45')
+    plt.tight_layout()
+    plt.savefig('free interpolant for CK45')
+    plt.show()
