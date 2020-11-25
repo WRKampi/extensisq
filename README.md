@@ -10,7 +10,7 @@ The first two methods have two variants each.
 
 ## Installation
 
-You can install extensisq from pypi:
+You can install extensisq from PyPI:
 
     pip install extensisq
 
