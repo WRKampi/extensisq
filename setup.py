@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="extensisq",
-    version="0.0.1",
+    version="0.0.2",
     author="W.R. Kampinga",
     author_email="wrkampi@tuta.io",
     description="extend solve_ivp of scipy.integrate with OdeSolver objects",

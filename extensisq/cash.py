@@ -153,7 +153,7 @@ class CK45(RungeKutta):
         [0, -287744/108031, 700416/108031, -381440/108031],
         [0, 3/2, -4, 5/2]])
     
-    # cubic spline interpolators (C1) for fallback solutions
+    # cubic Hermite spline interpolators (C1) for fallback solutions
     P_fallback = np.zeros((2, n_stages+1, 3))
     P_fallback[:,:-1,:] = (B_fallback/C_fallback[:,np.newaxis]
         )[:,:,np.newaxis]*[0,  3, -2]                 # value at end
