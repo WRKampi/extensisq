@@ -23,9 +23,9 @@ Borrowed from the the scipy documentation:
 Note that the object `BS45_i` is passed, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
 
 More examples are available as notebooks:
-1. [Lotka Volterra equation, all methods](https://github.com/WRKampi/extensisq/blob/main/notebooks/all_methods.ipynb)
-2. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/notebooks/Bogacki_Shampine.ipynb)
-3. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/notebooks/Cash_Karp.ipynb)
+1. [Lotka Volterra equation, all methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
+2. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
+3. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
 
 ## References
 [1]: P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28, ISSN 0898-1221. https://doi.org/10.1016/0898-1221(96)00141-1

@@ -669,7 +669,7 @@ if __name__ == '__main__':
     plt.xlim(0,1)
     plt.ylim(ymin=0)
     plt.xlabel(r'$\theta$')
-    plt.ylabel(r'$\hat{T}_5$')
+    plt.ylabel(r'error $\hat{T}_5$')
     plt.legend(loc=1)
     plt.title('free interpolant for CK45')
     plt.tight_layout()

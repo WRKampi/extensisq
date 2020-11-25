@@ -640,7 +640,7 @@ if __name__ == '__main__':
     plt.xlim(0,1)
     plt.ylim((0, 6e-4))
     plt.xlabel(r'$\theta$')
-    plt.ylabel(r'$\hat{T}_5$')
+    plt.ylabel(r'error $\hat{T}_5$')
     plt.legend(loc=1,ncol=2)
     plt.title('free interpolant for BS45_i')
     plt.tight_layout()
