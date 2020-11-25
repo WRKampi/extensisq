@@ -18,7 +18,7 @@ setuptools.setup(
         "scipy>=1.0.0",
     ],
     keywords = ['ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 
-        'scipy-integrate', 'runge-kutta', 'differential-equations']
+        'scipy-integrate', 'runge-kutta', 'differential-equations'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
