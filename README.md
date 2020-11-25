@@ -8,6 +8,13 @@ Currently, three explicit Runge Kutta methods of order 5 are implemented:
 
 The first two methods have two variants each.
 
+## Installation
+
+You can install extensisq from pypi:
+
+    pip install extensisq
+
+
 ## Example
 Borrowed from the the scipy documentation:
 
