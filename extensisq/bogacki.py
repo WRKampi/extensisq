@@ -257,7 +257,7 @@ class BS45(RungeKutta):
             
             # calculate solution
             self._rk_stage(h, 6)                            # stage 6
-            y_new = y + h * np.dot(self.K[:-1].T, self.B)
+            y_new = y + self.K[:-1].T @ self.B * h
             
             # calculate second error estimate
             # now use y_new for scale
@@ -292,12 +292,12 @@ class BS45(RungeKutta):
         return True, None
     
     def _rk_stage(self, h, i):
-        dy = np.dot(self.K[:i,:].T, self.A[i,:i]) * h
+        dy = self.K[:i,:].T @ self.A[i,:i] * h
         self.K[i] = self.fun(self.t + self.C[i]*h, self.y + dy)
     
     def _estimate_error(self, E, h):
         # pass E instead of K
-        return np.dot(self.K[:E.size,:].T, E) * h
+        return self.K[:E.size,:].T @ E * h
     
     def _estimate_error_norm(self, E, h, scale):
         # pass E instead of K
@@ -312,10 +312,10 @@ class BS45(RungeKutta):
             # calculate the required extra stages
             for s, (a, c) in enumerate(zip(self.A_extra, self.C_extra),
                         start=self.n_stages+1):
-                dy = np.dot(K[:s,:].T, a[:s]) * h
+                dy = K[:s,:].T @ a[:s] * h
                 K[s] = self.fun(self.t_old + c * h, self.y_old + dy)
             
-            # form Q. Usually: Q = K.T.dot(self.P)
+            # form Q. Usually: Q = K.T @ self.P
             # but rksuite recommends to group summations to mitigate roundoff:
             Q = np.empty((K.shape[1], self.P.shape[1]), dtype=K.dtype)
             Q[:,0] = K[7,:]                                 # term for t**1
@@ -346,7 +346,7 @@ class BS45(RungeKutta):
         else:                                   # self.dense_output_order=='low'
             # for BS45_i 
             # as usual:
-            Q = self.K.T.dot(self.Pfree)
+            Q = self.K.T @ self.Pfree
             return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
         
     

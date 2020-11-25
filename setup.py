@@ -7,7 +7,7 @@ setuptools.setup(
     name="extensisq",
     version="0.0.1",
     author="W.R. Kampinga",
-    author_email="",
+    author_email="wrkampi@tuta.io",
     description="extend solve_ivp of scipy.integrate with OdeSolver objects",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -17,6 +17,8 @@ setuptools.setup(
         "numpy>=1.4.0",
         "scipy>=1.0.0",
     ],
+    keywords = ['ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 
+        'scipy-integrate', 'runge-kutta', 'differential-equations']
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

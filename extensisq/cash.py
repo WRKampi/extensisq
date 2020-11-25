@@ -320,14 +320,14 @@ class CK45(RungeKutta):
         return True, None
     
     def _rk_stage(self, h, i):
-        dy = np.dot(self.K[:i,:].T, self.A[i,:i]) * h
+        dy = self.K[:i,:].T @ self.A[i,:i] * h
         self.K[i] = self.fun(self.t + self.C[i]*h, self.y + dy)
     
     def _compute_error(self, h, E, i):
-        return h*np.dot(self.K[:i,:].T, E[:i])
+        return self.K[:i,:].T @ E[:i] * h
     
     def _compute_solution(self, h, B, i):
-        return np.dot(self.K[:i,:].T, B[:i]) * h + self.y
+        return self.K[:i,:].T @ B[:i] * h + self.y
     
     def _comp_sol_err_tol(self, h, B, E, i=6):
         sol = self._compute_solution(h, B, i)
@@ -340,7 +340,7 @@ class CK45(RungeKutta):
         P = self.P
         if self.order_accepted != 4:
             P = self.P_fallback[self.order_accepted-1]
-        Q = self.K.T.dot(P)
+        Q = self.K.T @ P
         return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
     
     def _estimate_error(self, K, h):
