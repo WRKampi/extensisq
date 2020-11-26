@@ -1,6 +1,17 @@
 # extensisq
 This package extends scipy.integrate with OdeSolver objects for the solve_ivp function.
 
+
+
+<p align="center">
+    <img src="https://img.shields.io/conda/pn/conda-forge/extensisq" />
+    <img src="https://img.shields.io/pypi/pyversions/extensisq" />
+    <a href="https://github.com/WRKampi/extensisq/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/WRKampi/extensisq" /></a>
+    <a href="https://pypistats.org/packages/extensisq">
+        <img src="https://img.shields.io/pypi/dm/extensisq" /></a>
+</p>
+
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
 * Bogacki Shampine: efficient solver with an accurate high order interpolant (and a free low order one) [1]
 * Cash Karp: variable order solver tailored to solve non-smooth problems efficiently [2]
