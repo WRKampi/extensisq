@@ -4,7 +4,7 @@ This package extends scipy.integrate with OdeSolver objects for the solve_ivp fu
 
 
 <p align="center">
-    <img src="https://img.shields.io/conda/pn/conda-forge/extensisq" />
+    <img src="https://img.shields.io/conda/pn/conda-forge/extensisq?label=%20&logo=windows&logo=linux&logo=apple" />
     <img src="https://img.shields.io/pypi/pyversions/extensisq" />
     <a href="https://github.com/WRKampi/extensisq/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/WRKampi/extensisq" /></a>
