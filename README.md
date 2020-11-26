@@ -8,9 +8,9 @@ This package extends scipy.integrate with OdeSolver objects for the solve_ivp fu
 
 
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
-* Bogacki Shampine: efficient solver with an accurate high order interpolant (and a free low order one) [1]
-* Cash Karp: variable order solver tailored to solve non-smooth problems efficiently [2]
-* Tsitouras: relatively new solver (2011), optimized with fewer simplifying assumptions [3]
+* Bogacki Shampine: efficient solver with an accurate high order interpolant (and a free low order one) [1][1]
+* Cash Karp: variable order solver tailored to solve non-smooth problems efficiently [2][2]
+* Tsitouras: relatively new solver (2011), optimized with fewer simplifying assumptions [3][3]
 
 The first two methods have two variants each.
 
