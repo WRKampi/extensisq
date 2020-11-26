@@ -1,16 +1,11 @@
 # extensisq
 This package extends scipy.integrate with OdeSolver objects for the solve_ivp function.
 
+->![platform](https://img.shields.io/conda/pn/conda-forge/extensisq)
+![python](https://img.shields.io/pypi/pyversions/extensisq)
+[![license](https://img.shields.io/github/license/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
+[![downloads](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads)](https://pypistats.org/packages/extensisq)<-
 
-
-<p align="center">
-    <img src="https://img.shields.io/conda/pn/conda-forge/extensisq" />
-    <img src="https://img.shields.io/pypi/pyversions/extensisq" />
-    <a href="https://github.com/WRKampi/extensisq/blob/main/LICENSE">
-        <img src="https://img.shields.io/github/license/WRKampi/extensisq" /></a>
-    <a href="https://pypistats.org/packages/extensisq">
-        <img src="https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads" /></a>
-</p>
 
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
 * Bogacki Shampine: efficient solver with an accurate high order interpolant (and a free low order one) [1]
