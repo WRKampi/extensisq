@@ -14,6 +14,9 @@ You can install extensisq from [PyPI](https://pypi.org/project/extensisq/):
 
     pip install extensisq
 
+Or, if you'd rather use [conda](https://anaconda.org/conda-forge/extensisq):
+
+    conda install -c conda-forge extensisq
 
 ## Example
 Borrowed from the the scipy documentation:
