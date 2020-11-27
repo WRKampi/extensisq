@@ -1,7 +1,7 @@
 # extensisq
 This package extends scipy.integrate with OdeSolver objects for the solve_ivp function.
 
-![platform](https://img.shields.io/conda/pn/conda-forge/extensisq)
+![platform](https://img.shields.io/conda/pn/conda-forge/extensisq?color=brightgreen)
 ![python](https://img.shields.io/pypi/pyversions/extensisq)
 [![license](https://img.shields.io/github/license/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
 [![downloads](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads)](https://pypistats.org/packages/extensisq)
