@@ -38,7 +38,7 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Note that the object `BS45_i` is passed, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
+Note that the object `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Lotka Volterra equation, all methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
