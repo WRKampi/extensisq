@@ -5,6 +5,8 @@ This package extends scipy.integrate with OdeSolver objects for the solve_ivp fu
 ![python](https://img.shields.io/pypi/pyversions/extensisq)
 [![license](https://img.shields.io/github/license/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
 [![downloads](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads)](https://pypistats.org/packages/extensisq)
+[![downloads](https://img.shields.io/conda/dn/conda-forge/extensisq?label=conda%20downloads)](https://anaconda.org/conda-forge/extensisq)
+
 
 
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
@@ -36,12 +38,12 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Note that the object `BS45_i` is passed, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
+Note that the object `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
 
 More examples are available as notebooks:
-1. [Lotka Volterra equation, all methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
-2. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
-3. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
+1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
+2. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
+3. [Lotka Volterra equation, all methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28, ISSN 0898-1221. https://doi.org/10.1016/0898-1221(96)00141-1
