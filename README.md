@@ -5,6 +5,8 @@ This package extends scipy.integrate with OdeSolver objects for the solve_ivp fu
 ![python](https://img.shields.io/pypi/pyversions/extensisq)
 [![license](https://img.shields.io/github/license/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
 [![downloads](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads)](https://pypistats.org/packages/extensisq)
+[![downloads](https://img.shields.io/conda/dn/conda-forge/extensisq?label=conda%20downloads)](https://anaconda.org/conda-forge/extensisq)
+
 
 
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
