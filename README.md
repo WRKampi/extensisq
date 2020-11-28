@@ -1,5 +1,5 @@
 # extensisq
-This package extends scipy.integrate with OdeSolver objects for the solve_ivp function.
+This package extends scipy.integrate with new methods (OdeSolver classes) for the solve_ivp function.
 
 ![python](https://img.shields.io/pypi/pyversions/extensisq)
 ![platform](https://img.shields.io/conda/pn/conda-forge/extensisq)
@@ -38,7 +38,7 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Note that the object `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
+Note that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o` and `Ts45`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
