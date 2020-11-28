@@ -5,7 +5,7 @@ from extensisq.tsitouras import Ts45
 from extensisq.bogacki import BS45, BS45_i
 from extensisq.cash import CK45, CK45_o
 
-__version__ = '0.0.3'
+__version__ = '0.0.2'
 __author__ = 'W.R. Kampinga'
 __copyright__ = 'Copyright 2020, W.R. Kampinga'
 __license__ = 'MIT'
