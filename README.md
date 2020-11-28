@@ -1,5 +1,5 @@
 # extensisq
-This package extends scipy.integrate with new OdeSolver classes for the solve_ivp function.
+This package extends scipy.integrate with methods (OdeSolver classes) for the solve_ivp function.
 
 ![python](https://img.shields.io/pypi/pyversions/extensisq)
 ![platform](https://img.shields.io/conda/pn/conda-forge/extensisq)
