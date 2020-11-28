@@ -7,7 +7,7 @@ setuptools.setup(
     name="extensisq",
     version="0.0.2",
     author="W.R. Kampinga",
-    description="extend solve_ivp of scipy.integrate with OdeSolver objects",
+    description="Extend scipy.integrate with new methods for solve_ivp",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/WRKampi/extensisq",
