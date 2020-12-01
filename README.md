@@ -10,11 +10,11 @@ This package extends scipy.integrate with various methods (OdeSolver classes) fo
 
 
 Currently, three explicit Runge Kutta methods of order 5 are implemented:
-* Bogacki Shampine: efficient solver with an accurate high order interpolant (and a free low order one) [1]
-* Cash Karp: variable order solver tailored to solve non-smooth problems efficiently [2]
-* Tsitouras: relatively new solver (2011), optimized with fewer simplifying assumptions [3]
+* Bogacki Shampine (`BS45` and `BS45_i`): efficient solver with an accurate high order interpolant (and a free low order one) [1]
+* Cash Karp (`CK45` and `CK45_o`): variable order solver tailored to solve non-smooth problems efficiently [2]
+* Tsitouras (`Ts45`): relatively new solver (2011), optimized with fewer simplifying assumptions [3]
 
-The first two methods have two variants each.
+The names of the classes are given in the parenthesis. The first two methods have a default method and a variant.
 
 ## Installation
 
