@@ -1,4 +1,4 @@
-"""This package extends scipy.integrate with OdeSolver objects for 
+"""This package extends scipy.integrate with OdeSolver objects for
 the solve_ivp function.
 """
 from extensisq.tsitouras import Ts45
@@ -9,5 +9,5 @@ __version__ = '0.0.2'
 __author__ = 'W.R. Kampinga'
 __copyright__ = 'Copyright 2020, W.R. Kampinga'
 __license__ = 'MIT'
-__credits__ = ('scipy', 'P. Bogacki', 'L.F Shampine', 'J.R. Cash', 'A.H. Karp', 
-                'Ch. Tsitouras')
+__credits__ = ('scipy', 'P. Bogacki', 'L.F Shampine', 'J.R. Cash', 'A.H. Karp',
+               'Ch. Tsitouras')
