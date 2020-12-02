@@ -11,7 +11,7 @@ from scipy.integrate import OdeSolution
 from scipy.integrate._ivp.common import num_jac
 from scipy.integrate._ivp.base import ConstantDenseOutput
 from scipy.sparse import coo_matrix, csc_matrix
-from extensisq import *
+from extensisq import BS45, BS45_i, Ts45, CK45, CK45_o
 
 
 METHODS = [BS45, BS45_i, Ts45, CK45, CK45_o]
