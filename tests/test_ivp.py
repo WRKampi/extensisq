@@ -6,7 +6,7 @@ import pytest
 from pytest import raises as assert_raises
 import numpy as np
 from scipy.optimize._numdiff import group_columns
-from scipy.integrate import solve_ivp, RK23, RK45, DOP853, Radau, BDF, LSODA
+from scipy.integrate import solve_ivp, LSODA
 from scipy.integrate import OdeSolution
 from scipy.integrate._ivp.common import num_jac
 from scipy.integrate._ivp.base import ConstantDenseOutput
@@ -210,9 +210,10 @@ def test_integration():
         # previous points exactly after the order change. It might be some
         # bug in LSOSA implementation or maybe we missing something.
         if method != 'LSODA':
-            #~ print(method)
-            #~ print(res.sol(res.t) - res.y)
-            assert_allclose(res.sol(res.t), res.y, rtol=1e-14, atol=1e-14) # increased tol
+            # print(method)
+            # print(res.sol(res.t) - res.y)
+            # increased tol:
+            assert_allclose(res.sol(res.t), res.y, rtol=1e-14, atol=1e-14)
 
 
 def test_integration_complex():
@@ -259,90 +260,93 @@ def test_integration_complex():
         assert np.all(e < 5)
 
 
-#~ def test_integration_sparse_difference():
-    #~ n = 200
-    #~ t_span = [0, 20]
-    #~ y0 = np.zeros(2 * n)
-    #~ y0[1::2] = 1
-    #~ sparsity = medazko_sparsity(n)
+'''
+def test_integration_sparse_difference():
+    n = 200
+    t_span = [0, 20]
+    y0 = np.zeros(2 * n)
+    y0[1::2] = 1
+    sparsity = medazko_sparsity(n)
 
-    #~ for method in ['BDF', 'Radau']:
-        #~ res = solve_ivp(fun_medazko, t_span, y0, method=method,
-                        #~ jac_sparsity=sparsity)
+    for method in ['BDF', 'Radau']:
+        res = solve_ivp(fun_medazko, t_span, y0, method=method,
+                        jac_sparsity=sparsity)
 
-        #~ assert_equal(res.t[0], t_span[0])
-        #~ assert_(res.t_events is None)
-        #~ assert_(res.y_events is None)
-        #~ assert_(res.success)
-        #~ assert_equal(res.status, 0)
+        assert_equal(res.t[0], t_span[0])
+        assert_(res.t_events is None)
+        assert_(res.y_events is None)
+        assert_(res.success)
+        assert_equal(res.status, 0)
 
-        #~ assert_allclose(res.y[78, -1], 0.233994e-3, rtol=1e-2)
-        #~ assert_allclose(res.y[79, -1], 0, atol=1e-3)
-        #~ assert_allclose(res.y[148, -1], 0.359561e-3, rtol=1e-2)
-        #~ assert_allclose(res.y[149, -1], 0, atol=1e-3)
-        #~ assert_allclose(res.y[198, -1], 0.117374129e-3, rtol=1e-2)
-        #~ assert_allclose(res.y[199, -1], 0.6190807e-5, atol=1e-3)
-        #~ assert_allclose(res.y[238, -1], 0, atol=1e-3)
-        #~ assert_allclose(res.y[239, -1], 0.9999997, rtol=1e-2)
-
-
-#~ def test_integration_const_jac():
-    #~ rtol = 1e-3
-    #~ atol = 1e-6
-    #~ y0 = [0, 2]
-    #~ t_span = [0, 2]
-    #~ J = jac_linear()
-    #~ J_sparse = csc_matrix(J)
-
-    #~ for method, jac in product(['Radau', 'BDF'], [J, J_sparse]):
-        #~ res = solve_ivp(fun_linear, t_span, y0, rtol=rtol, atol=atol,
-                        #~ method=method, dense_output=True, jac=jac)
-        #~ assert_equal(res.t[0], t_span[0])
-        #~ assert_(res.t_events is None)
-        #~ assert_(res.y_events is None)
-        #~ assert_(res.success)
-        #~ assert_equal(res.status, 0)
-
-        #~ assert_(res.nfev < 100)
-        #~ assert_equal(res.njev, 0)
-        #~ assert_(0 < res.nlu < 15)
-
-        #~ y_true = sol_linear(res.t)
-        #~ e = compute_error(res.y, y_true, rtol, atol)
-        #~ assert_(np.all(e < 10))
-
-        #~ tc = np.linspace(*t_span)
-        #~ yc_true = sol_linear(tc)
-        #~ yc = res.sol(tc)
-
-        #~ e = compute_error(yc, yc_true, rtol, atol)
-        #~ assert_(np.all(e < 15))
-
-        #~ assert_allclose(res.sol(res.t), res.y, rtol=1e-14, atol=1e-14)
+        assert_allclose(res.y[78, -1], 0.233994e-3, rtol=1e-2)
+        assert_allclose(res.y[79, -1], 0, atol=1e-3)
+        assert_allclose(res.y[148, -1], 0.359561e-3, rtol=1e-2)
+        assert_allclose(res.y[149, -1], 0, atol=1e-3)
+        assert_allclose(res.y[198, -1], 0.117374129e-3, rtol=1e-2)
+        assert_allclose(res.y[199, -1], 0.6190807e-5, atol=1e-3)
+        assert_allclose(res.y[238, -1], 0, atol=1e-3)
+        assert_allclose(res.y[239, -1], 0.9999997, rtol=1e-2)
 
 
-#~ @pytest.mark.slow
-#~ @pytest.mark.parametrize('method', ['Radau', 'BDF', 'LSODA'])
-#~ def test_integration_stiff(method):
-    #~ rtol = 1e-6
-    #~ atol = 1e-6
-    #~ y0 = [1e4, 0, 0]
-    #~ tspan = [0, 1e8]
+def test_integration_const_jac():
+    rtol = 1e-3
+    atol = 1e-6
+    y0 = [0, 2]
+    t_span = [0, 2]
+    J = jac_linear()
+    J_sparse = csc_matrix(J)
 
-    #~ def fun_robertson(t, state):
-        #~ x, y, z = state
-        #~ return [
-            #~ -0.04 * x + 1e4 * y * z,
-            #~ 0.04 * x - 1e4 * y * z - 3e7 * y * y,
-            #~ 3e7 * y * y,
-        #~ ]
+    for method, jac in product(['Radau', 'BDF'], [J, J_sparse]):
+        res = solve_ivp(fun_linear, t_span, y0, rtol=rtol, atol=atol,
+                        method=method, dense_output=True, jac=jac)
+        assert_equal(res.t[0], t_span[0])
+        assert_(res.t_events is None)
+        assert_(res.y_events is None)
+        assert_(res.success)
+        assert_equal(res.status, 0)
 
-    #~ res = solve_ivp(fun_robertson, tspan, y0, rtol=rtol,
-                    #~ atol=atol, method=method)
+        assert_(res.nfev < 100)
+        assert_equal(res.njev, 0)
+        assert_(0 < res.nlu < 15)
 
-    #~ # If the stiff mode is not activated correctly, these numbers will be much bigger
-    #~ assert res.nfev < 5000
-    #~ assert res.njev < 200
+        y_true = sol_linear(res.t)
+        e = compute_error(res.y, y_true, rtol, atol)
+        assert_(np.all(e < 10))
+
+        tc = np.linspace(*t_span)
+        yc_true = sol_linear(tc)
+        yc = res.sol(tc)
+
+        e = compute_error(yc, yc_true, rtol, atol)
+        assert_(np.all(e < 15))
+
+        assert_allclose(res.sol(res.t), res.y, rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('method', ['Radau', 'BDF', 'LSODA'])
+def test_integration_stiff(method):
+    rtol = 1e-6
+    atol = 1e-6
+    y0 = [1e4, 0, 0]
+    tspan = [0, 1e8]
+
+    def fun_robertson(t, state):
+        x, y, z = state
+        return [
+            -0.04 * x + 1e4 * y * z,
+            0.04 * x - 1e4 * y * z - 3e7 * y * y,
+            3e7 * y * y,
+        ]
+
+    res = solve_ivp(fun_robertson, tspan, y0, rtol=rtol,
+                    atol=atol, method=method)
+
+    # If the stiff mode is not activated correctly, these numbers will be much
+    # bigger
+    assert res.nfev < 5000
+    assert res.njev < 200
+'''
 
 
 def test_events():
@@ -437,7 +441,8 @@ def test_events():
         assert_(np.all(e < 5))
 
         # Test that the y_event matches solution
-        assert np.allclose(sol_rational(res.t_events[0][0]), res.y_events[0][0], rtol=1e-3, atol=1e-6)
+        assert np.allclose(sol_rational(
+            res.t_events[0][0]), res.y_events[0][0], rtol=1e-3, atol=1e-6)
 
     # Test in backward direction.
     event_rational_1.direction = 0
@@ -514,8 +519,10 @@ def test_events():
         e = compute_error(yc, yc_true, 1e-3, 1e-6)
         assert_(np.all(e < 5))
 
-        assert np.allclose(sol_rational(res.t_events[1][0]), res.y_events[1][0], rtol=1e-3, atol=1e-6)
-        assert np.allclose(sol_rational(res.t_events[2][0]), res.y_events[2][0], rtol=1e-3, atol=1e-6)
+        assert np.allclose(sol_rational(res.t_events[1][0]),
+                           res.y_events[1][0], rtol=1e-3, atol=1e-6)
+        assert np.allclose(sol_rational(res.t_events[2][0]),
+                           res.y_events[2][0], rtol=1e-3, atol=1e-6)
 
 
 def test_max_step():
@@ -781,7 +788,9 @@ def test_classes():
         sol = solver.dense_output()
         assert_allclose(sol(5), y0, rtol=1e-15, atol=0)
 
+
 test_classes()
+
 
 def test_OdeSolution():
     ts = np.array([0, 2, 5], dtype=float)
@@ -899,87 +908,89 @@ def test_num_jac_sparse():
     assert_allclose(factor_dense, factor_sparse, rtol=1e-12, atol=1e-14)
 
 
-#~ def test_args():
+'''
+def test_args():
 
-    #~ # sys3 is actually two decoupled systems. (x, y) form a
-    #~ # linear oscillator, while z is a nonlinear first order
-    #~ # system with equilibria at z=0 and z=1. If k > 0, z=1
-    #~ # is stable and z=0 is unstable.
+    # sys3 is actually two decoupled systems. (x, y) form a
+    # linear oscillator, while z is a nonlinear first order
+    # system with equilibria at z=0 and z=1. If k > 0, z=1
+    # is stable and z=0 is unstable.
 
-    #~ def sys3(t, w, omega, k, zfinal):
-        #~ x, y, z = w
-        #~ return [-omega*y, omega*x, k*z*(1 - z)]
+    def sys3(t, w, omega, k, zfinal):
+        x, y, z = w
+        return [-omega*y, omega*x, k*z*(1 - z)]
 
-    #~ def sys3_jac(t, w, omega, k, zfinal):
-        #~ x, y, z = w
-        #~ J = np.array([[0, -omega, 0],
-                      #~ [omega, 0, 0],
-                      #~ [0, 0, k*(1 - 2*z)]])
-        #~ return J
+    def sys3_jac(t, w, omega, k, zfinal):
+        x, y, z = w
+        J = np.array([[0, -omega, 0],
+                      [omega, 0, 0],
+                      [0, 0, k*(1 - 2*z)]])
+        return J
 
-    #~ def sys3_x0decreasing(t, w, omega, k, zfinal):
-        #~ x, y, z = w
-        #~ return x
+    def sys3_x0decreasing(t, w, omega, k, zfinal):
+        x, y, z = w
+        return x
 
-    #~ def sys3_y0increasing(t, w, omega, k, zfinal):
-        #~ x, y, z = w
-        #~ return y
+    def sys3_y0increasing(t, w, omega, k, zfinal):
+        x, y, z = w
+        return y
 
-    #~ def sys3_zfinal(t, w, omega, k, zfinal):
-        #~ x, y, z = w
-        #~ return z - zfinal
+    def sys3_zfinal(t, w, omega, k, zfinal):
+        x, y, z = w
+        return z - zfinal
 
-    #~ # Set the event flags for the event functions.
-    #~ sys3_x0decreasing.direction = -1
-    #~ sys3_y0increasing.direction = 1
-    #~ sys3_zfinal.terminal = True
+    # Set the event flags for the event functions.
+    sys3_x0decreasing.direction = -1
+    sys3_y0increasing.direction = 1
+    sys3_zfinal.terminal = True
 
-    #~ omega = 2
-    #~ k = 4
+    omega = 2
+    k = 4
 
-    #~ tfinal = 5
-    #~ zfinal = 0.99
-    #~ # Find z0 such that when z(0) = z0, z(tfinal) = zfinal.
-    #~ # The condition z(tfinal) = zfinal is the terminal event.
-    #~ z0 = np.exp(-k*tfinal)/((1 - zfinal)/zfinal + np.exp(-k*tfinal))
+    tfinal = 5
+    zfinal = 0.99
+    # Find z0 such that when z(0) = z0, z(tfinal) = zfinal.
+    # The condition z(tfinal) = zfinal is the terminal event.
+    z0 = np.exp(-k*tfinal)/((1 - zfinal)/zfinal + np.exp(-k*tfinal))
 
-    #~ w0 = [0, -1, z0]
+    w0 = [0, -1, z0]
 
-    #~ # Provide the jac argument and use the Radau method to ensure that the use
-    #~ # of the Jacobian function is exercised.
-    #~ # If event handling is working, the solution will stop at tfinal, not tend.
-    #~ tend = 2*tfinal
-    #~ sol = solve_ivp(sys3, [0, tend], w0,
-                    #~ events=[sys3_x0decreasing, sys3_y0increasing, sys3_zfinal],
-                    #~ dense_output=True, args=(omega, k, zfinal),
-                    #~ method='Radau', jac=sys3_jac,
-                    #~ rtol=1e-10, atol=1e-13)
+    # Provide the jac argument and use the Radau method to ensure that the use
+    # of the Jacobian function is exercised.
+    # If event handling is working, the solution will stop at tfinal, not tend.
+    tend = 2*tfinal
+    sol = solve_ivp(sys3, [0, tend], w0,
+                    events=[sys3_x0decreasing, sys3_y0increasing, sys3_zfinal],
+                    dense_output=True, args=(omega, k, zfinal),
+                    method='Radau', jac=sys3_jac,
+                    rtol=1e-10, atol=1e-13)
 
-    #~ # Check that we got the expected events at the expected times.
-    #~ x0events_t = sol.t_events[0]
-    #~ y0events_t = sol.t_events[1]
-    #~ zfinalevents_t = sol.t_events[2]
-    #~ assert_allclose(x0events_t, [0.5*np.pi, 1.5*np.pi])
-    #~ assert_allclose(y0events_t, [0.25*np.pi, 1.25*np.pi])
-    #~ assert_allclose(zfinalevents_t, [tfinal])
+    # Check that we got the expected events at the expected times.
+    x0events_t = sol.t_events[0]
+    y0events_t = sol.t_events[1]
+    zfinalevents_t = sol.t_events[2]
+    assert_allclose(x0events_t, [0.5*np.pi, 1.5*np.pi])
+    assert_allclose(y0events_t, [0.25*np.pi, 1.25*np.pi])
+    assert_allclose(zfinalevents_t, [tfinal])
 
-    #~ # Check that the solution agrees with the known exact solution.
-    #~ t = np.linspace(0, zfinalevents_t[0], 250)
-    #~ w = sol.sol(t)
-    #~ assert_allclose(w[0], np.sin(omega*t), rtol=1e-9, atol=1e-12)
-    #~ assert_allclose(w[1], -np.cos(omega*t), rtol=1e-9, atol=1e-12)
-    #~ assert_allclose(w[2], 1/(((1 - z0)/z0)*np.exp(-k*t) + 1),
-                    #~ rtol=1e-9, atol=1e-12)
+    # Check that the solution agrees with the known exact solution.
+    t = np.linspace(0, zfinalevents_t[0], 250)
+    w = sol.sol(t)
+    assert_allclose(w[0], np.sin(omega*t), rtol=1e-9, atol=1e-12)
+    assert_allclose(w[1], -np.cos(omega*t), rtol=1e-9, atol=1e-12)
+    assert_allclose(w[2], 1/(((1 - z0)/z0)*np.exp(-k*t) + 1),
+                    rtol=1e-9, atol=1e-12)
 
-    #~ # Check that the state variables have the expected values at the events.
-    #~ x0events = sol.sol(x0events_t)
-    #~ y0events = sol.sol(y0events_t)
-    #~ zfinalevents = sol.sol(zfinalevents_t)
-    #~ assert_allclose(x0events[0], np.zeros_like(x0events[0]), atol=5e-14)
-    #~ assert_allclose(x0events[1], np.ones_like(x0events[1]))
-    #~ assert_allclose(y0events[0], np.ones_like(y0events[0]))
-    #~ assert_allclose(y0events[1], np.zeros_like(y0events[1]), atol=5e-14)
-    #~ assert_allclose(zfinalevents[2], [zfinal])
+    # Check that the state variables have the expected values at the events.
+    x0events = sol.sol(x0events_t)
+    y0events = sol.sol(y0events_t)
+    zfinalevents = sol.sol(zfinalevents_t)
+    assert_allclose(x0events[0], np.zeros_like(x0events[0]), atol=5e-14)
+    assert_allclose(x0events[1], np.ones_like(x0events[1]))
+    assert_allclose(y0events[0], np.ones_like(y0events[0]))
+    assert_allclose(y0events[1], np.zeros_like(y0events[1]), atol=5e-14)
+    assert_allclose(zfinalevents[2], [zfinal])
+'''
 
 
 @pytest.mark.parametrize('method', METHODS)
