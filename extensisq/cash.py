@@ -229,7 +229,7 @@ class CK45(RungeKutta):
                     # second fourth error, fifth order solution, for output
                     y_new, err, tol = self._comp_sol_err_tol(h, self.B, self.E)
                     E4 = norm(err/tol)**(1/5)
-                    E4 = E4 or np.finfo(float).eps    # prevent div 0
+                    E4 = E4 or 1e-99                  # prevent div 0
                     esttol = E4
 
                     # assess final error

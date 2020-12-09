@@ -335,7 +335,6 @@ class BS45(RungeKutta):
             KP = K*self.P[:, 5, np.newaxis]                 # term for t**6
             Q[:, 5] = (KP[4] + ((KP[9] + KP[7]) + (KP[6] + KP[5])) + ((KP[3] +
                        KP[8]) + (KP[2] + KP[10]) + KP[0]))
-            # this is almost the same as Q usual
 
             # Rksuite uses horners rule to evaluate the polynomial. Moreover,
             # the polynomial definition is different: looking back from the end
