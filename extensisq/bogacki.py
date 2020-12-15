@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.integrate._ivp.rk import (
-    RungeKutta, RkDenseOutput, norm,
+    RungeKutta, norm,
     SAFETY, MAX_FACTOR, MIN_FACTOR)       # using scipy's values, not rksuite's
+from extensisq.common import HornerDenseOutput
 
 
 class BS45(RungeKutta):
@@ -95,7 +96,6 @@ class BS45(RungeKutta):
     error_estimator_order = 4
     n_stages = 7        # the effective nr (total nr of stages is 8)
     n_extra_stages = 3  # for dense output
-    dense_output_order = 'high'
 
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1, 1])
@@ -170,29 +170,6 @@ class BS45(RungeKutta):
         [0, -423642896/126351225, -11411880511/379053675, -26477681/359975,
             -1774004627/25270245, -1774004627/75810735],
         [0, 12, 59, 117, 105, 35]])
-
-    # Bogacki published a free interpolant in his thesis, but I was not able to
-    # find a copy of it. Instead, I constructed an interpolant using sympy and
-    # the approach in [3]_ (docstring of BS45_i).
-    # This free 4th order interpolant has a leading error term ||T5|| that has
-    # maximum in [0,1] of 5.47 e-4. This is higher than the corresponding term
-    # of the embedded fourth order method: 1.06e-4.
-    Pfree = np.array([
-        [1, -2773674729811/735370896960, 316222661411/52526492640,
-            -1282818361681/294148358784, 6918746667/5836276960],
-        [0, 0, 0, 0, 0],
-        [0, 1594012432639617/282545840187520, -303081611134977/20181845727680,
-            1643668176796011/113018336075008, -14071997888919/2883120818240],
-        [0, -47637453654133/20485332129600, 125365109861131/10242666064800,
-            -135424370922463/8194132851840, 2582696138393/379358002400],
-        [0, 1915795112337/817078774400, -557453242737/58362769600,
-            3958638678747/326831509760, -285784868817/58362769600],
-        [0, -1490252641456/654939705105, 692325952352/93562815015,
-            -808867306376/130987941021, 4887837472/3465289445],
-        [0, 824349534931/571955142080, -895925604353/122561816160,
-            2443928282393/228782056832, -5528580993/1167255392],
-        [0, -38480331/36476731, 226874786/36476731, -374785310/36476731,
-            186390855/36476731]])
 
     def __init__(self, fun, t0, y0, t_bound, **extraneous):
         super(BS45, self).__init__(fun, t0, y0, t_bound, **extraneous)
@@ -305,48 +282,39 @@ class BS45(RungeKutta):
         return norm(self._estimate_error(E, h) / scale)
 
     def _dense_output_impl(self):
+        h = self.h_previous
+        K = self.K_extended
 
-        if self.dense_output_order == 'high':               # default
-            h = self.h_previous
-            K = self.K_extended
+        # calculate the required extra stages
+        for s, (a, c) in enumerate(zip(self.A_extra, self.C_extra),
+                                   start=self.n_stages+1):
+            dy = K[:s, :].T @ a[:s] * h
+            K[s] = self.fun(self.t_old + c * h, self.y_old + dy)
 
-            # calculate the required extra stages
-            for s, (a, c) in enumerate(zip(self.A_extra, self.C_extra),
-                                       start=self.n_stages+1):
-                dy = K[:s, :].T @ a[:s] * h
-                K[s] = self.fun(self.t_old + c * h, self.y_old + dy)
+        # form Q. Usually: Q = K.T @ self.P
+        # but rksuite recommends to group summations to mitigate roundoff:
+        Q = np.empty((K.shape[1], self.P.shape[1]-1), dtype=K.dtype)
+        KP = K*self.P[:, 1, np.newaxis]                 # term for t**2
+        Q[:, 0] = (KP[4] + ((KP[5] + KP[7]) + KP[0]) + ((KP[2] + KP[8]) +
+                   KP[9]) + ((KP[3] + KP[10]) + KP[6]))
+        KP = K*self.P[:, 2, np.newaxis]                 # term for t**3
+        Q[:, 1] = (KP[4] + KP[5] + ((KP[2] + KP[8]) + (KP[9] + KP[7]) +
+                   KP[0]) + ((KP[3] + KP[10]) + KP[6]))
+        KP = K*self.P[:, 3, np.newaxis]                 # term for t**4
+        Q[:, 2] = (((KP[3] + KP[7]) + (KP[6] + KP[5]) + KP[4]) + ((KP[9] +
+                   KP[8]) + (KP[2]+KP[10]) + KP[0]))
+        KP = K*self.P[:, 4, np.newaxis]                 # term for t**5
+        Q[:, 3] = ((KP[9] + KP[8]) + ((KP[6] + KP[5]) + KP[4]) + ((KP[3] +
+                   KP[7]) + (KP[2] + KP[10]) + KP[0]))
+        KP = K*self.P[:, 5, np.newaxis]                 # term for t**6
+        Q[:, 4] = (KP[4] + ((KP[9] + KP[7]) + (KP[6] + KP[5])) + ((KP[3] +
+                   KP[8]) + (KP[2] + KP[10]) + KP[0]))
 
-            # form Q. Usually: Q = K.T @ self.P
-            # but rksuite recommends to group summations to mitigate roundoff:
-            Q = np.empty((K.shape[1], self.P.shape[1]), dtype=K.dtype)
-            Q[:, 0] = K[7, :]                               # term for t**1
-            KP = K*self.P[:, 1, np.newaxis]                 # term for t**2
-            Q[:, 1] = (KP[4] + ((KP[5] + KP[7]) + KP[0]) + ((KP[2] + KP[8]) +
-                       KP[9]) + ((KP[3] + KP[10]) + KP[6]))
-            KP = K*self.P[:, 2, np.newaxis]                 # term for t**3
-            Q[:, 2] = (KP[4] + KP[5] + ((KP[2] + KP[8]) + (KP[9] + KP[7]) +
-                       KP[0]) + ((KP[3] + KP[10]) + KP[6]))
-            KP = K*self.P[:, 3, np.newaxis]                 # term for t**4
-            Q[:, 3] = (((KP[3] + KP[7]) + (KP[6] + KP[5]) + KP[4]) + ((KP[9] +
-                       KP[8]) + (KP[2]+KP[10]) + KP[0]))
-            KP = K*self.P[:, 4, np.newaxis]                 # term for t**5
-            Q[:, 4] = ((KP[9] + KP[8]) + ((KP[6] + KP[5]) + KP[4]) + ((KP[3] +
-                       KP[7]) + (KP[2] + KP[10]) + KP[0]))
-            KP = K*self.P[:, 5, np.newaxis]                 # term for t**6
-            Q[:, 5] = (KP[4] + ((KP[9] + KP[7]) + (KP[6] + KP[5])) + ((KP[3] +
-                       KP[8]) + (KP[2] + KP[10]) + KP[0]))
-
-            # Rksuite uses horners rule to evaluate the polynomial. Moreover,
-            # the polynomial definition is different: looking back from the end
-            # of the step instead of forward from the start.
-            # The call is modified accordingly:
-            return HornerDenseOutput(self.t, self.t+h, self.y, Q)
-
-        else:                                  # self.dense_output_order=='low'
-            # for BS45_i
-            # as usual:
-            Q = self.K.T @ self.Pfree
-            return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
+        # Rksuite uses horners rule to evaluate the polynomial. Moreover,
+        # the polynomial definition is different: looking back from the end
+        # of the step instead of forward from the start.
+        # The call is modified accordingly:
+        return HornerDenseOutput(self.t, self.t+h, self.y, self.K[7], Q)
 
 
 class BS45_i(BS45):
@@ -432,31 +400,31 @@ class BS45_i(BS45):
            https://doi.org/10.1016/j.camwa.2011.06.002
     """
 
-    dense_output_order = 'low'
+    # Bogacki published a free interpolant in his thesis, but I was not able to
+    # find a copy of it. Instead, I constructed an interpolant using sympy and
+    # the approach in [3]_ (docstring of BS45_i).
+    # This free 4th order interpolant has a leading error term ||T5|| that has
+    # maximum in [0,1] of 5.47 e-4. This is higher than the corresponding term
+    # of the embedded fourth order method: 1.06e-4.
+    P = np.array([
+        [1, -2773674729811/735370896960, 316222661411/52526492640,
+            -1282818361681/294148358784, 6918746667/5836276960],
+        [0, 0, 0, 0, 0],
+        [0, 1594012432639617/282545840187520, -303081611134977/20181845727680,
+            1643668176796011/113018336075008, -14071997888919/2883120818240],
+        [0, -47637453654133/20485332129600, 125365109861131/10242666064800,
+            -135424370922463/8194132851840, 2582696138393/379358002400],
+        [0, 1915795112337/817078774400, -557453242737/58362769600,
+            3958638678747/326831509760, -285784868817/58362769600],
+        [0, -1490252641456/654939705105, 692325952352/93562815015,
+            -808867306376/130987941021, 4887837472/3465289445],
+        [0, 824349534931/571955142080, -895925604353/122561816160,
+            2443928282393/228782056832, -5528580993/1167255392],
+        [0, -38480331/36476731, 226874786/36476731, -374785310/36476731,
+            186390855/36476731]])
 
-
-class HornerDenseOutput(RkDenseOutput):
-    """use Horner's rule for the evaluation of the polynomials"""
-    def _call_impl(self, t):
-
-        # scaled time
-        x = (t - self.t_old) / self.h
-
-        # Horner's rule:
-        y = np.zeros((self.Q.shape[0], x.size), dtype=self.Q.dtype)
-        for q in reversed(self.Q.T):
-            y += q[:, np.newaxis]
-            y *= x
-
-        # finish:
-        y *= self.h
-        y += self.y_old[:, np.newaxis]
-
-        # need this `if` to pass scipy's unit tests. I'm not sure why.
-        if t.shape:
-            return y
-        else:
-            return y[:, 0]
+    def _dense_output_impl(self):
+        return super(BS45, self)._dense_output_impl()
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate._ivp.rk import (
-    RungeKutta, RkDenseOutput, norm, SAFETY, MIN_FACTOR, MAX_FACTOR)
+    RungeKutta, RkDenseOutput, norm, SAFETY)
+from extensisq.common import RungeKuttaConv
 
 
 class CK45(RungeKutta):
@@ -346,13 +347,8 @@ class CK45(RungeKutta):
         # only used for testing
         return self._compute_error(h, self.E, 6)
 
-    def _estimate_error_norm(self, K, h, scale):
-        # only used for testing
-        sol, err, tol = self._comp_sol_err_tol(h, self.B, self.E, i=6)
-        return norm(err/tol)
 
-
-class CK45_o(CK45):
+class CK45_o(RungeKuttaConv):
     """As CK45, but fixed at 5th order solution porpagator with 4th order error
     estimator. (suffix _o for order)
 
@@ -426,69 +422,16 @@ class CK45_o(CK45):
            0098-3500. https://doi.org/10.1145/79505.79507
     """
 
-    order_accepted = 4  # for dense output
+    n_stages = CK45.n_stages
+    order = CK45.order
+    error_estimator_order = CK45.error_estimator_order
 
-    def _step_impl(self):
-        t = self.t
-        y = self.y
-        max_step = self.max_step
-
-        min_step = 10 * np.abs(np.nextafter(t, self.direction * np.inf) - t)
-        if self.h_abs > max_step:
-            h_abs = max_step
-        elif self.h_abs < min_step:
-            h_abs = min_step
-        else:
-            h_abs = self.h_abs
-
-        step_accepted = False
-        step_rejected = False
-        while not step_accepted:
-            if h_abs < min_step:
-                return False, self.TOO_SMALL_STEP
-            h = h_abs * self.direction
-            t_new = t + h
-            if self.direction * (t_new - self.t_bound) > 0:
-                t_new = self.t_bound
-            # added look ahead to prevent too small last step
-            elif abs(t_new - self.t_bound) <= min_step:
-                t_new = t + h/2
-            h = t_new - t
-            h_abs = np.abs(h)
-
-            # not FSAL, do last evaluation only after step is accepted
-            # calculate the 6 stages
-            self.K[0] = self.f                              # stage 0 (FSAL)
-            for i in range(1, 6):
-                self._rk_stage(h, i)                        # stages 1-5
-            y_new, err, tol = self._comp_sol_err_tol(h, self.B, self.E)
-            error_norm = norm(err/tol)
-            if error_norm < 1:
-                if error_norm == 0:
-                    factor = MAX_FACTOR
-                else:
-                    factor = min(MAX_FACTOR,
-                                 SAFETY * error_norm ** self.error_exponent)
-                if step_rejected:
-                    factor = min(1, factor)
-                h_abs *= factor
-                step_accepted = True
-                # now do the last evaluation
-                f_new = self.fun(t_new, y_new)
-                self.K[6] = f_new                           # stage 6 (FSAL)
-
-            else:
-                h_abs *= max(MIN_FACTOR,
-                             SAFETY * error_norm ** self.error_exponent)
-                step_rejected = True
-
-        self.h_previous = h
-        self.y_old = y
-        self.t = t_new
-        self.y = y_new
-        self.h_abs = h_abs
-        self.f = f_new
-        return True, None
+    A = CK45.A
+    B = CK45.B
+    C = CK45.C
+    P = CK45.P
+    E = np.zeros(n_stages+1)
+    E[:-1] = CK45.E
 
 
 if __name__ == '__main__':

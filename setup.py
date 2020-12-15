@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="extensisq",
-    version="0.0.2",
+    version="0.0.3",
     author="W.R. Kampinga",
     author_email='wrkampi@tuta.io',
     description="Extend scipy.integrate with various methods for solve_ivp",
@@ -17,7 +17,8 @@ setuptools.setup(
         "numpy>=1.4.0",
         "scipy>=1.0.0",
     ],
-    keywords = ['ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 
+    keywords = [
+        'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy',
         'scipy-integrate', 'runge-kutta', 'differential-equations',
     ],
     classifiers=[
@@ -27,6 +28,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Physics"
     ],
     python_requires='>=3.6',
     tests_require=['pytest']
