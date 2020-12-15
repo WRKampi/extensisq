@@ -17,9 +17,10 @@ setuptools.setup(
         "numpy>=1.4.0",
         "scipy>=1.0.0",
     ],
-    keywords = [
-        'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy',
-        'scipy-integrate', 'runge-kutta', 'differential-equations',
+    keywords=[
+        'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
+        'runge-kutta', 'differential-equations', 'cash-carp', 'prince'
+        'bogacki-shampine'
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
