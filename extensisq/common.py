@@ -96,7 +96,7 @@ class RungeKuttaConv(RungeKutta):
 
     def _comp_sol_err(self, y, h):
         # compute solution and error norm of step
-        y_new = y + h * np.dot(self.K[:-1].T, self.B)
+        y_new = y + h * (self.K[:-1].T @ self.B)
         scale = self.atol + np.maximum(np.abs(y), np.abs(y_new)) * self.rtol
         error_norm = self._estimate_error_norm(self.K, h, scale)
         return y_new, error_norm
