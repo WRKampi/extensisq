@@ -19,7 +19,7 @@ setuptools.setup(
     ],
     keywords=[
         'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
-        'runge-kutta', 'differential-equations', 'cash-carp', 'prince'
+        'runge-kutta', 'differential-equations', 'cash-carp', 'prince',
         'bogacki-shampine'
     ],
     classifiers=[
