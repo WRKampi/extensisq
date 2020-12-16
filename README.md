@@ -11,7 +11,7 @@ This package extends scipy.integrate with various methods (OdeSolver classes) fo
 
 Currently, several explicit Runge Kutta methods (for non-stiff problems) are provided.
 
-Three explicit Runge Kutta methods of order 5 are implemented:
+Three explicit Runge Kutta methods of order 5 and two variants are implemented:
 * `BS45`: efficient solver with an accurate high order interpolant by Bogacki and Shampine [1]. The variant `BS45_i` has a free, lower order interpolant.
 * `CK45`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2]. The variant `CK45_o` is a fixed (fifth) order method with the same coefficients. 
 * `Ts45`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
