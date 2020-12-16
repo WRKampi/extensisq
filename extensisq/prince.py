@@ -74,8 +74,8 @@ class Pri6(RungeKuttaConv):
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
-           Explicit Runge-Kutta Methods", Guisborough, TS14 6NP, U.K.,
-           September 6, 2018.
+           Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
+           September 6 2018.
            http://www.peteprince.co.uk/parallel.pdf
     """
     order = 7
@@ -198,8 +198,8 @@ class Pri7(RungeKuttaConv):
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
-           Explicit Runge-Kutta Methods", Guisborough, TS14 6NP, U.K.,
-           September 6, 2018.
+           Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
+           September 6 2018.
            http://www.peteprince.co.uk/parallel.pdf
     """
     order = 8
@@ -440,8 +440,8 @@ class Pri8(RungeKuttaConv):
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
-           Explicit Runge-Kutta Methods", Guisborough, TS14 6NP, U.K.,
-           September 6, 2018.
+           Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
+           September 6 2018.
            http://www.peteprince.co.uk/parallel.pdf
     """
     order = 9
