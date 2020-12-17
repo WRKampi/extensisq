@@ -5,7 +5,7 @@ from extensisq.common import RungeKuttaConv
 
 
 class CK45(RungeKutta):
-    """Cash Karp variable order (5, 3, 2) runge kutta method with error
+    """Cash Karp variable order (5, 3, 2) Runge Kutta method with error
     estimators of order (4, 2, 1). This method is created to efficiently solve
     non-smooth problems [1]_. Interpolants for dense output have been added.
 
@@ -349,8 +349,9 @@ class CK45(RungeKutta):
 
 
 class CK45_o(RungeKuttaConv):
-    """As CK45, but fixed at 5th order solution porpagator with 4th order error
-    estimator. (suffix _o for order)
+    """A 5th order method with 4th order error estimator that uses the 
+    same coefficients as CK45. In this variant the order is fixed (suffix _o 
+    for order).
 
     Parameters
     ----------
