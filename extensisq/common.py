@@ -76,7 +76,7 @@ class RungeKuttaConv(RungeKutta):
 
                 # now calculate last stage
                 f_new = self.fun(t + h, y_new)
-                self.K[-1] = f_new
+                self.K[self.n_stages] = f_new
             else:
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
@@ -96,7 +96,7 @@ class RungeKuttaConv(RungeKutta):
 
     def _comp_sol_err(self, y, h):
         # compute solution and error norm of step
-        y_new = y + h * (self.K[:-1].T @ self.B)
+        y_new = y + h * (self.K[:self.n_stages].T @ self.B)
         scale = self.atol + np.maximum(np.abs(y), np.abs(y_new)) * self.rtol
         error_norm = self._estimate_error_norm(self.K, h, scale)
         return y_new, error_norm
