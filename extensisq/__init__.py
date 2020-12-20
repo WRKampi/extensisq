@@ -1,5 +1,5 @@
-"""This package extends scipy.integrate with OdeSolver objects for
-the solve_ivp function.
+"""This package extends scipy.integrate with various methods 
+(OdeSolver classes) for the solve_ivp function.
 """
 from extensisq.tsitouras import Ts45
 from extensisq.bogacki import BS45, BS45_i
