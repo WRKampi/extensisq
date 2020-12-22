@@ -121,13 +121,12 @@ class BS45(RungeKutta):
     A = A[:-1, :].copy()
 
     # coefficients for first error estimation method
-    E1 = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95])
+    E_pre = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95])
 
-    # coefficients for second error estimation method
-    E2 = np.array([2479/34992, 0, 123/416, 612941/3411720, 43/1440, 2272/6561,
-                   79937/1113912, 3293/556956])
-    E2[:-1] -= B   # convert to error coefficients
-    E = E2
+    # coefficients for main error estimation method
+    E = np.array([2479/34992, 0, 123/416, 612941/3411720, 43/1440, 2272/6561,
+                  79937/1113912, 3293/556956])
+    E[:-1] -= B   # convert to error coefficients
 
     # extra time step fractions for dense output
     C_extra = np.array([1/2, 5/6, 1/9])
@@ -224,13 +223,13 @@ class BS45(RungeKutta):
             # calculate the first error estimate
             # y_new is not available yet for scale, so use y_old instead
             scale = atol + rtol * np.maximum(np.abs(y), np.abs(y_old))
-            error_norm = self._estimate_error_norm(self.E1, h, scale)
+            error_norm_pre = self._estimate_error_norm_pre(h, scale)
 
             # reject step if needed
-            if error_norm > 1:
+            if error_norm_pre > 1:
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
-                             SAFETY * error_norm**self.error_exponent)
+                             SAFETY * error_norm_pre**self.error_exponent)
                 continue
 
             # calculate solution
@@ -242,7 +241,7 @@ class BS45(RungeKutta):
             f_new = self.fun(t_new, y_new)
             self.K[7] = f_new                               # stage 7 (FSAL)
             scale = atol + rtol * np.maximum(np.abs(y), np.abs(y_new))
-            error_norm = self._estimate_error_norm(self.E2, h, scale)
+            error_norm = self._estimate_error_norm(self.K, h, scale)
 
             # continue as usual
             if error_norm < 1:
@@ -273,13 +272,10 @@ class BS45(RungeKutta):
         dy = self.K[:i, :].T @ self.A[i, :i] * h
         self.K[i] = self.fun(self.t + self.C[i]*h, self.y + dy)
 
-    def _estimate_error(self, E, h):
-        # pass E instead of K
-        return self.K[:E.size, :].T @ E * h
-
-    def _estimate_error_norm(self, E, h, scale):
-        # pass E instead of K
-        return norm(self._estimate_error(E, h) / scale)
+    def _estimate_error_norm_pre(self, h, scale):
+        # first error estimate
+        err = self.K[:6, :].T @ self.E_pre * h
+        return norm(err / scale)
 
     def _dense_output_impl(self):
         h = self.h_previous
