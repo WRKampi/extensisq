@@ -1,12 +1,12 @@
 # extensisq
 This package extends scipy.integrate with various methods (OdeSolver classes) for the solve_ivp function.
 
-![python:3](https://img.shields.io/pypi/pyversions/extensisq)
-![platform:noarch](https://img.shields.io/conda/pn/conda-forge/extensisq)
-[![license:MIT](https://img.shields.io/github/license/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
-[![downloads pypi](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads)](https://pypistats.org/packages/extensisq)
-[![downloads conda](https://img.shields.io/conda/dn/conda-forge/extensisq?label=conda%20downloads)](https://anaconda.org/conda-forge/extensisq)
-[![release-date](https://img.shields.io/github/release-date/WRKampi/extensisq)](https://github.com/WRKampi/extensisq/releases)
+![python:3](https://img.shields.io/pypi/pyversions/extensisq?style=flat-square)
+![platform:noarch](https://img.shields.io/conda/pn/conda-forge/extensisq?style=flat-square)
+[![license:MIT](https://img.shields.io/github/license/WRKampi/extensisq?style=flat-square)](https://github.com/WRKampi/extensisq/blob/main/LICENSE)
+[![downloads pypi](https://img.shields.io/pypi/dm/extensisq?label=PyPI%20downloads&style=flat-square)](https://pypistats.org/packages/extensisq)
+[![downloads conda](https://img.shields.io/conda/dn/conda-forge/extensisq?label=conda%20downloads&style=flat-square)](https://anaconda.org/conda-forge/extensisq)
+[![release-date](https://img.shields.io/github/release-date/WRKampi/extensisq?style=flat-square)](https://github.com/WRKampi/extensisq/releases)
 
 
 Currently, several explicit Runge Kutta methods (for non-stiff problems) are provided.
