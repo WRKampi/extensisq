@@ -179,7 +179,7 @@ def test_integration():
             # have enough time to develop big enough step size.
             assert_(res.nfev < 55)  # increased
         else:
-            assert_(res.nfev < 40)
+            assert res.nfev < 40
 
         if method in METHODS:
             assert_equal(res.njev, 0)
@@ -213,7 +213,7 @@ def test_integration():
             # print(method)
             # print(res.sol(res.t) - res.y)
             # increased tol:
-            assert_allclose(res.sol(res.t), res.y, 
+            assert_allclose(res.sol(res.t), res.y,
                             rtol=1e-12, atol=1e-13)         # relaxed tol
 
 
@@ -238,9 +238,11 @@ def test_integration_complex():
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method == 'DOP853' or Pri7:
-            assert res.nfev < 38      # increased
+        if method in ['DOP853', Pri7, Pri8]:
+            print(method, res.nfev)
+            assert res.nfev < 40      # increased
         else:
+            print(method, res.nfev)
             assert res.nfev < 25
 
         if method == 'BDF':
@@ -555,7 +557,7 @@ def test_max_step():
 
             # See comment in test_integration.
             if method is not LSODA:
-                assert_allclose(res.sol(res.t), res.y, 
+                assert_allclose(res.sol(res.t), res.y,
                                 rtol=1e-12, atol=1e-13)     # relaxed tol
 
             assert_raises(ValueError, method, fun_rational, t_span[0], y0,
@@ -602,7 +604,7 @@ def test_first_step():
 
             # See comment in test_integration.
             if method is not LSODA:
-                assert_allclose(res.sol(res.t), res.y, 
+                assert_allclose(res.sol(res.t), res.y,
                                 rtol=1e-12, atol=1e-13)     # relaxed tol
 
             assert_raises(ValueError, method, fun_rational, t_span[0], y0,
@@ -789,7 +791,7 @@ def test_classes():
         assert_(solver.njev >= 0)
         assert_(solver.nlu >= 0)
         sol = solver.dense_output()
-        assert_allclose(sol(5), y0, rtol=1e-15, atol=0)
+        assert_allclose(sol(5), y0, rtol=1e-14, atol=0)
 
 
 test_classes()

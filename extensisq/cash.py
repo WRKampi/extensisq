@@ -1,7 +1,7 @@
 import numpy as np
-from scipy.integrate._ivp.rk import (
-    RungeKutta, RkDenseOutput, norm, SAFETY)
-from extensisq.common import RungeKuttaConv
+from scipy.integrate._ivp.rk import norm, SAFETY
+from extensisq.common import (
+    RungeKutta, HornerDenseOutput, CubicDenseOutput, LinearDenseOutput, NFS)
 
 
 class CK45(RungeKutta):
@@ -92,13 +92,13 @@ class CK45(RungeKutta):
     """
     # changes w.r.t. paper [1]_:
     # - loop reformulated to prevent code repetition.
-    # - atol and rtol that may be arrays, instead of only scalar atol.
+    # - atol and rtol as in scipy, instead of only scalar atol.
     # - do not allow for an increase in step size directly after a failed step.
     # - incude interpolants for dense output.
 
-    n_stages = 6                                            # for main method
-    order = 5                                               # for main method
-    error_estimator_order = 4                               # for main method
+    n_stages = 6                                              # for main method
+    order = 5                                                 # for main method
+    error_estimator_order = 4                                 # for main method
     max_factor = 5
     min_factor = 1/5
 
@@ -120,27 +120,29 @@ class CK45(RungeKutta):
         [1, 0, 0, 0, 0, 0],                                           # order 1
         [-3/2, 5/2, 0, 0, 0, 0],                                      # order 2
         [19/54, 0, -10/27, 55/54, 0, 0],                              # order 3
-        [2825/27648, 0, 18575/48384, 13525/55296, 277/14336, 1/4],    # order 4
+        [2825/27648, 0, 18575/48384, 13525/55296, 277/14336,
+            1/4],                                                     # order 4
         [37/378, 0, 250/621, 125/594, 0, 512/1771]])                  # order 5
 
     # coefficients for main propagating method
-    B = B_all[5, :]                                   # order 5
-    E = B_all[5, :] - B_all[4, :]                     # order 4(5)
+    B = B_all[5, :]                                                   # order 5
+    E = np.zeros(7)
+    E[:-1] = B_all[5, :] - B_all[4, :]                             # order 4(5)
 
     # coefficients for convergence assessment
     B_assess = B_all[[2, 3], :]
     E_assess = np.array([
-            B_all[2, :] - B_all[1, :],                # order 1(2)
-            B_all[3, :] - B_all[2, :]])               # order 2(3)
+        B_all[2, :] - B_all[1, :],                                 # order 1(2)
+        B_all[3, :] - B_all[2, :]])                                # order 2(3)
 
     # coefficients for fallback methods
     C_fallback = C[[1, 3]]
     B_fallback = np.array([
-        [1/10, 1/10, 0, 0, 0, 0],                     # order 2
-        [1/10, 0, 2/5, 1/10, 0, 0]])                  # order 3
+        [1/10, 1/10, 0, 0, 0, 0],                                     # order 2
+        [1/10, 0, 2/5, 1/10, 0, 0]])                                  # order 3
     E_fallback = np.array([
-        [-1/10, 1/10, 0, 0, 0, 0],                    # order 1(2)
-        [1/10, 0, -2/10, 1/10, 0, 0]])                # order 2(3)
+        [-1/10, 1/10, 0, 0, 0, 0],                                 # order 1(2)
+        [1/10, 0, -2/10, 1/10, 0, 0]])                             # order 2(3)
 
     # fourth order interpolator for fifth order solution
     # maximum ||T5|| in [0,1] is 1.52e-3
@@ -153,20 +155,11 @@ class CK45(RungeKutta):
         [0, -287744/108031, 700416/108031, -381440/108031],
         [0, 3/2, -4, 5/2]])
 
-    # cubic Hermite spline interpolators (C1) for fallback solutions
-    P_fallback = np.zeros((2, n_stages+1, 3))
-    P_fallback[:, :-1, :] = (
-        B_fallback/C_fallback[:, np.newaxis]
-        )[:, :, np.newaxis]*[0,  3, -2]               # value at end
-    P_fallback[:,  0, :] += [1, -2,  1]               # derivative at start
-    P_fallback[:, -1, :] += [0, -1,  1]               # derivative at end
-
     def __init__(self, fun, t0, y0, t_bound, **extraneous):
         super(CK45, self).__init__(fun, t0, y0, t_bound, **extraneous)
-        self.K[:, :] = 0.   # set 0 for interpolator interpolator:
-        # weighing factors, these are adaptively changed:
-        self.twiddle = np.array([1.5, 1.1])           # starting values
-        self.quit = np.array([100., 100.])            # starting values
+        # adaptive weighing factors:
+        self.twiddle = [1.5, 1.1]                             # starting values
+        self.quit = [100., 100.]                              # starting values
 
     def _step_impl(self):
         t = self.t
@@ -174,73 +167,77 @@ class CK45(RungeKutta):
         twiddle = self.twiddle
         quit = self.quit
 
+        # limit step size
         min_step = 10 * np.abs(np.nextafter(t, self.direction * np.inf) - t)
-        if self.h_abs > self.max_step:
-            h_abs = self.max_step
-        elif self.h_abs < min_step:
-            h_abs = min_step
-        else:
-            h_abs = self.h_abs
+        h_abs = min(self.max_step, max(min_step, self.h_abs))
+
+        # use extrapolation in the rare cases where the previous step ended
+        # too close to t_bound.
+        d = abs(self.t_bound - t)
+        if d < min_step:
+            h = self.t_bound - t
+            y_new = y + h * self.f
+            self.h_previous = h
+            self.y_old = y
+            self.t = self.t_bound
+            self.y = y_new
+            self.f = None                          # used by _dense_output_impl
+            return True, None
+
+        # don't step over t_bound
+        h_abs = min(h_abs, d)
 
         order_accepted = 0
         step_rejected = False
         while not order_accepted:
 
-            # the usual tests
             if h_abs < min_step:
                 return False, self.TOO_SMALL_STEP
             h = h_abs * self.direction
             t_new = t + h
-            if self.direction * (t_new - self.t_bound) > 0:
-                t_new = self.t_bound
-            # added look ahead to prevent too small last step
-            elif abs(t_new - self.t_bound) <= min_step:
-                t_new = t + h/2
-            h = t_new - t
-            h_abs = np.abs(h)
 
             # start the integration, two stages at a time
-            self.K[0] = self.f                        # stage 0 (FSAL)
-            self._rk_stage(h, 1)                      # stage 1
+            self.K[0] = self.f                                        # stage 0
+            self._rk_stage(h, 1)                                      # stage 1
 
             # first order error, second order solution, for assessment
             y_assess, err_assess, tol = self._comp_sol_err_tol(
                                     h, self.B_assess[0], self.E_assess[0], 2)
-            E1 = norm(err_assess/tol)**(1/2)
-            esttol = E1/self.quit[0]
+            E1 = norm(err_assess/tol) ** (1/2)
+            esttol = E1 / self.quit[0]
 
             # assess if full step completion is likely
-            if E1 < twiddle[0]*quit[0]:
+            if E1 < twiddle[0] * quit[0]:
                 # green light -> continue with next two stages
-                self._rk_stage(h, 2)                  # stage 2
-                self._rk_stage(h, 3)                  # stage 3
+                self._rk_stage(h, 2)                                  # stage 2
+                self._rk_stage(h, 3)                                  # stage 3
 
                 # second order error, third order solution, for assessment
                 y_assess, err_assess, tol = self._comp_sol_err_tol(
                                     h, self.B_assess[1], self.E_assess[1], 4)
-                E2 = norm(err_assess/tol)**(1/3)
-                esttol = E2/self.quit[1]
+                E2 = norm(err_assess/tol) ** (1/3)
+                esttol = E2 / self.quit[1]
 
                 # assess if full step completion is likely
                 if E2 < twiddle[1]*quit[1]:
                     # green light -> continue with last two stages
-                    self._rk_stage(h, 4)              # stage 4
-                    self._rk_stage(h, 5)              # stage 5
+                    self._rk_stage(h, 4)                              # stage 4
+                    self._rk_stage(h, 5)                              # stage 5
 
                     # second fourth error, fifth order solution, for output
                     y_new, err, tol = self._comp_sol_err_tol(h, self.B, self.E)
-                    E4 = norm(err/tol)**(1/5)
-                    E4 = E4 or 1e-99                  # prevent div 0
+                    E4 = norm(err/tol) ** (1/5)
+                    E4 = E4 or 1e-160                                # no div 0
                     esttol = E4
 
                     # assess final error
                     if E4 < 1:
                         # accept fifth order solution
-                        order_accepted = 4            # error order
+                        order_accepted = 4                        # error order
 
                         # update h for next step
                         factor = min(self.max_factor, SAFETY/E4)
-                        if step_rejected:             # not in paper
+                        if step_rejected:                        # not in paper
                             factor = min(1.0, factor)
                         h_abs *= factor
 
@@ -248,9 +245,9 @@ class CK45(RungeKutta):
                         q = [E1/E4, E2/E4]
                         for j in (0, 1):
                             if q[j] > quit[j]:
-                                q[j] = min(q[j], 10.*quit[j])
+                                q[j] = min(q[j], 10 * quit[j])
                             else:
-                                q[j] = max(q[j], 2/3*quit[j])
+                                q[j] = max(q[j], 2/3 * quit[j])
                             quit[j] = max(1., min(10000., q[j]))
 
                         break
@@ -260,7 +257,7 @@ class CK45(RungeKutta):
                     # update twiddle factors
                     e = [E1, E2]
                     for i in (0, 1):
-                        EQ = e[i]/quit[i]
+                        EQ = e[i] / quit[i]
                         if EQ < twiddle[i]:
                             twiddle[i] = max(1.1, EQ)
 
@@ -272,9 +269,9 @@ class CK45(RungeKutta):
                         # assess second order error
                         if norm(err/tol) < 1:
                             # accept third order fallback solution
-                            order_accepted = 2              # error order
-                            h_abs *= self.C_fallback[1]     # reduce next step
-                            h = h_abs * self.direction      # and THIS step
+                            order_accepted = 2                    # error order
+                            h_abs *= self.C_fallback[1]      # reduce next step
+                            h = h_abs * self.direction          # and THIS step
                             break
 
                 # assess propagation with second order fallback solution
@@ -286,19 +283,21 @@ class CK45(RungeKutta):
                     if norm(err/tol) < 1:
                         # accept second order fallback solution
                         order_accepted = 1
-                        h_abs *= self.C_fallback[0]         # reduce next step
-                        h = h_abs * self.direction          # and THIS step
+                        h_abs *= self.C_fallback[0]          # reduce next step
+                        h = h_abs * self.direction              # and THIS step
                         break
 
                     else:
                         # non-smooth behavior detected retry step with h/5
                         step_rejected = True
                         h_abs *= self.C_fallback[0]
+                        NFS[()] += 1
                         continue
 
             # just not accurate enough, retry with usual estimate for h
             step_rejected = True
             h_abs *= max(self.min_factor, SAFETY/esttol)
+            NFS[()] += 1
             continue
 
         # end of main while loop
@@ -308,49 +307,48 @@ class CK45(RungeKutta):
         t_new = t + h
         f_new = self.fun(t_new, y_new)
         self.K[-1, :] = f_new
-        self.order_accepted = order_accepted                # error order
 
-        # as usual:
+        # store for next step and interpolation
+        self.order_accepted = order_accepted                      # error order
         self.h_previous = h
         self.y_old = y
-        self.t = t_new
-        self.y = y_new
         self.h_abs = h_abs
         self.f = f_new
+
+        # output
+        self.t = t_new
+        self.y = y_new
         return True, None
 
-    def _rk_stage(self, h, i):
-        dy = self.K[:i, :].T @ self.A[i, :i] * h
-        self.K[i] = self.fun(self.t + self.C[i]*h, self.y + dy)
-
     def _compute_error(self, h, E, i):
-        return self.K[:i, :].T @ E[:i] * h
+        return h * (self.K[:i, :].T @ E[:i])
 
     def _compute_solution(self, h, B, i):
-        return self.K[:i, :].T @ B[:i] * h + self.y
+        return h * (self.K[:i, :].T @ B[:i]) + self.y
 
     def _comp_sol_err_tol(self, h, B, E, i=6):
         sol = self._compute_solution(h, B, i)
         err = self._compute_error(h, E, i)
-        tol = self.atol + self.rtol*np.maximum(np.abs(self.y), np.abs(sol))
+        tol = self.atol + self.rtol * np.maximum(np.abs(self.y), np.abs(sol))
         return sol, err, tol
 
     def _dense_output_impl(self):
+        if self.f is None:
+            # output was extrapolated linearly
+            return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
         # select interpolator based on order of the accepted error (solution)
-        P = self.P
-        if self.order_accepted != 4:
-            P = self.P_fallback[self.order_accepted-1]
-        Q = self.K.T @ P
-        return RkDenseOutput(self.t_old, self.t, self.y_old, Q)
-
-    def _estimate_error(self, K, h):
-        # only used for testing
-        return self._compute_error(h, self.E, 6)
+        if self.order_accepted == 4:
+            # 4th order error estimate accepted (5th order solution)
+            Q = self.K.T @ self.P
+            return HornerDenseOutput(self.t_old, self.t, self.y_old, Q)
+        # low order solution
+        return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
+                                self.K[0, :], self.K[-1, :])
 
 
-class CK45_o(RungeKuttaConv):
-    """A 5th order method with 4th order error estimator that uses the 
-    same coefficients as CK45. In this variant the order is fixed (suffix _o 
+class CK45_o(RungeKutta):
+    """A 5th order method with 4th order error estimator that uses the
+    same coefficients as CK45. In this variant the order is fixed (suffix _o
     for order).
 
     Parameters
@@ -431,15 +429,14 @@ class CK45_o(RungeKuttaConv):
     B = CK45.B
     C = CK45.C
     P = CK45.P
-    E = np.zeros(n_stages+1)
-    E[:-1] = CK45.E
+    E = CK45.E
 
 
 if __name__ == '__main__':
     """Construction of a free interpolant of the CK45 pair. The approach from
     "Runge-Kutta pairs of order 5(4) satisfying only the first column
     simplifying assumption" by Ch Tsitouras is followed."""
-    import numpy as np
+    # import numpy as np
     import matplotlib.pyplot as plt
     import sympy
     from sympy.solvers.solveset import linsolve
