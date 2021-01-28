@@ -70,8 +70,9 @@ class RungeKutta(OdeSolver):
         self.rtol, self.atol = validate_tol(rtol, atol, self.n)
         self.f = self.fun(self.t, self.y)
         if first_step is None:
-            self.h_abs = abs(h_start(self.fun, self.t, self.t_bound, self.y,
-                                     self.f, self.order, self.rtol, self.atol))
+            self.h_abs = abs(h_start(
+                self.fun, self.t, self.t_bound, self.y, self.f,
+                self.error_estimator_order, self.rtol, self.atol))
         else:
             self.h_abs = validate_first_step(first_step, t0, t_bound)
         self.K = np.empty((self.n_stages + 1, self.n), self.y.dtype)
