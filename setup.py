@@ -20,7 +20,8 @@ setuptools.setup(
     keywords=[
         'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
         'runge-kutta', 'differential-equations', 'cash-karp', 'prince',
-        'bogacki-shampine'
+        'bogacki-shampine', 'adams', 'adams-bashforth-moulton', 'ode113',
+        'predictor-corrector', 'shampine-gordon', 'solver'
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
