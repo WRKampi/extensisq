@@ -46,7 +46,7 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Note that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o`, `Ts45`, `Pri6`, `Pri7` and `Pri8`) can be used in a similar way.
+Notice that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o`, `Ts45`, `Pri6`, `Pri7` and `Pri8`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
