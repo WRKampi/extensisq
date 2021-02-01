@@ -55,7 +55,8 @@ class CK45(RungeKutta):
         passing array_like with shape (n,) for `atol`. Default values are
         1e-3 for `rtol` and 1e-6 for `atol`.
     vectorized : bool, optional
-        Whether `fun` is implemented in a vectorized fashion. Default is False.
+        Whether `fun` is implemented in a vectorized fashion. A vectorized
+        implementation offers no advantages for this solver. Default is False.
 
     Attributes
     ----------
@@ -385,7 +386,8 @@ class CK45_o(RungeKutta):
         passing array_like with shape (n,) for `atol`. Default values are
         1e-3 for `rtol` and 1e-6 for `atol`.
     vectorized : bool, optional
-        Whether `fun` is implemented in a vectorized fashion. Default is False.
+        Whether `fun` is implemented in a vectorized fashion. A vectorized
+        implementation offers no advantages for this solver. Default is False.
 
     Attributes
     ----------
