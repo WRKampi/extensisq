@@ -524,11 +524,13 @@ class SwagDenseOutput(DenseOutput):
                 m = kold - iw + 2
             for i in range(m, kold):
                 gdi = ow[kold-i] - alpha[i] * gdi
+        # and gdif, which is a vector now
+        gdif = np.diff(og, prepend=0.0)                                   # vec
 
         # store data
-        (self.x, self.y, self.kold, self.phi, self.alpha, self.og, self.ox,
+        (self.x, self.y, self.kold, self.phi, self.alpha, self.gdif, self.ox,
          self.oy, self.iqq, self.gdi) = (
-            x, y, kold, phi, alpha, og, ox, oy, iqq, gdi)
+            x, y, kold, phi, alpha, gdif, ox, oy, iqq, gdi)
 
     def _call_impl(self, t):
         # interpolation of derivative is deactivated, because it is unsupported
@@ -536,9 +538,9 @@ class SwagDenseOutput(DenseOutput):
         # are uncommented.
 
         # load data
-        x, y, kold, phi, alpha, og, ox, oy, iqq, gdi = (
-            self.x, self.y, self.kold, self.phi, self.alpha, self.og, self.ox,
-            self.oy, self.iqq, self.gdi)
+        x, y, kold, phi, alpha, gdif, ox, oy, iqq, gdi = (
+            self.x, self.y, self.kold, self.phi, self.alpha, self.gdif,
+            self.ox, self.oy, self.iqq, self.gdi)
 
         kp1 = kold + 1
 
@@ -550,9 +552,7 @@ class SwagDenseOutput(DenseOutput):
         # interpolate point by point
         yout_array = np.empty((self.y.size, t.size), dtype=self.y.dtype)
         # ypout_array = np.empty_like(yout_array)                       # prime
-
         for it, xout in enumerate(np.atleast_1d(t)):
-
             # ***first executable statement dintp
             hi = xout - ox
             h = x - ox
@@ -575,7 +575,6 @@ class SwagDenseOutput(DenseOutput):
                 # c[i+2] = gamma * c[i+1]                               # prime
 
             # define interpolation parameters
-            gdif = np.diff(og, prepend=0.0)                               # vec
             sigma = (w[1] - xim1 * w[0]) / gdi
             # rmu = xim1 * c[kold] / gdi                                # prime
             # hmu = rmu / h                                             # prime
