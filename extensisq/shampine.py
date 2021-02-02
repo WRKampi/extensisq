@@ -493,13 +493,12 @@ class SWAG(OdeSolver):
         x = self.t
         ox = self.t_old
         y = self.y
-        oy = self.p.copy()                                              # y_old
+        oy = self.p                                                     # y_old
         kold = self.kold
         if kold:
             return SwagDenseOutput(
-                x, y, kold, self.phi[:, :kold+1].copy(), self.ivc, self.iv,
-                self.kgi, self.gi, self.alpha[:kold].copy(),
-                self.g[:kold+1].copy(), self.w, ox, oy, self.iqq)
+                x, y, kold, self.phi, self.ivc, self.iv, self.kgi, self.gi,
+                self.alpha, self.g, self.w, ox, oy, self.iqq)
         else:
             # for the rare cases, in which the last step is tiny,
             # and therefore extrapolated.
@@ -507,8 +506,8 @@ class SWAG(OdeSolver):
 
 
 class SwagDenseOutput(DenseOutput):
-    def __init__(self, x, y,
-                 kold, phi, ivc, iv, kgi, gi, alpha, og, ow, ox, oy, iqq):
+    def __init__(self, x, y, kold, phi, ivc, iv, kgi, gi,
+                 alpha, og, ow, ox, oy, iqq):
         super(SwagDenseOutput, self).__init__(ox, x)
 
         # compute the double integral term gdi
@@ -524,13 +523,14 @@ class SwagDenseOutput(DenseOutput):
                 m = kold - iw + 2
             for i in range(m, kold):
                 gdi = ow[kold-i] - alpha[i] * gdi
-        # and gdif, which is a vector now
-        gdif = np.diff(og, prepend=0.0)                                   # vec
+        # and gdif, (vector here, scalar in original code)
+        gdif = np.diff(og[:kold+1], prepend=0.0)                          # vec
 
         # store data
         (self.x, self.y, self.kold, self.phi, self.alpha, self.gdif, self.ox,
          self.oy, self.iqq, self.gdi) = (
-            x, y, kold, phi, alpha, gdif, ox, oy, iqq, gdi)
+            x, y, kold, phi[:, :kold+1].copy(), alpha[1:kold].copy(), gdif, ox,
+            oy.copy(), iqq[:kold+1], gdi)
 
     def _call_impl(self, t):
         # interpolation of derivative is deactivated, because it is unsupported
@@ -560,14 +560,14 @@ class SwagDenseOutput(DenseOutput):
             xim1 = xi - 1.0
 
             # initialize w(*) for computing g(*)
-            w[:] = xi * (np.cumprod(np.full(kp1, xi)) * iqq[:kp1])
+            w[:] = xi * (np.cumprod(np.full(kp1, xi)) * iqq)
 
             # compute g(*) and c(*)
             g[0] = xi
             g[1] = 0.5 * xi * xi
             # c[0] = 1.0                                                # prime
             # c[1] = xi                                                 # prime
-            for i, alp in enumerate(alpha[1:kold]):
+            for i, alp in enumerate(alpha):
                 lim = kold - i
                 gamma = 1.0 + xim1 * alp
                 w[:lim] = gamma * w[:lim] - alp * w[1:lim+1]
