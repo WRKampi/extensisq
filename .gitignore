@@ -131,3 +131,7 @@ dmypy.json
 # VS code
 .vscode/*
 .history/
+tempCodeRunnerFile.py
+
+# simple local test
+test.py
