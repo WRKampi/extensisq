@@ -28,35 +28,35 @@ class RungeKutta(OdeSolver):
     # ### implement ###
     # n_stages : int
     #    effective number of stages
-    n_stages = NotImplemented
+    n_stages: int = NotImplemented
 
     # order : int
     #    order of the main method
-    order = NotImplemented
+    order: int = NotImplemented
 
     # error_estimator_order : int
     #    order of the secondary embedded method
-    error_estimator_order = NotImplemented
+    error_estimator_order: int = NotImplemented
 
     # A : ndarray[n_stages, n_stages]
     #    runge kutta coefficient matrix
-    A = NotImplemented
+    A: np.ndarray = NotImplemented
 
     # B : ndarray[n_stages]
     #    output coefficients (weights)
-    B = NotImplemented
+    B: np.ndarray = NotImplemented
 
     # C : ndarray[n_stages]
     #    time fraction coefficients (nodes)
-    C = NotImplemented
+    C: np.ndarray = NotImplemented
 
     # E : ndarray[n_stages + 1]
     #    error coefficients (weights Bh - B)
-    E = NotImplemented
+    E: np.ndarray = NotImplemented
 
     # P : ndarray[n_stages + 1, order_polynomial]
     #    interpolation coefficients
-    P = NotImplemented
+    P: np.ndarray = NotImplemented
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None, **extraneous):
@@ -92,7 +92,7 @@ class RungeKutta(OdeSolver):
         # use extrapolation in the rare cases where the previous step ended
         # too close to t_bound.
         d = abs(self.t_bound - t)
-        if d < min_step:
+        if d <= min_step:
             h = self.t_bound - t
             y_new = y + h * self.f
             self.h_previous = h
@@ -221,7 +221,7 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
         This is the vector of derivatives of the n solution components at the
         initial point `a`.  (defined by the differential equations in
         subroutine `df`)
-    morder : integer
+    morder : int
         This is the order of the formula which will be used by the initial
         value method for taking the first integration step.
     rtol : float
@@ -241,7 +241,8 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
            Computational and Applied Mathematics, Vol. 9, No. 2, 1983,
            pp. 177-191, ISSN 0377-0427.
            https://doi.org/10.1016/0377-0427(83)90040-7
-    .. [2] Fortran code dstrt.f from https://www.netlib.org/slatec/src/
+    .. [2] Slatec Fortran code dstrt.f.
+           https://www.netlib.org/slatec/src/
     """
 
     # needed to pass scipy unit test:
@@ -254,36 +255,36 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
     pv = np.empty_like(y)
     etol = atol + rtol * np.abs(y)
 
-    # `SMALL` is a small positive machine dependent constant which is used for
+    # `small` is a small positive machine dependent constant which is used for
     # protecting against computations with numbers which are too small relative
-    # to the precision of floating point arithmetic. `SMALL` should be set to
+    # to the precision of floating point arithmetic. `small` should be set to
     # (approximately) the smallest positive DOUBLE PRECISION number such that
-    # (1. + SMALL) > 1.  on the machine being used. The quantity SMALL**(3/8)
+    # (1. + small) > 1.  on the machine being used. The quantity small**(3/8)
     # is used in computing increments of variables for approximating
     # derivatives by differences.  Also the algorithm will not compute a
-    # starting step length which is smaller than 100*SMALL*ABS(A).
-    # `BIG` is a large positive machine dependent constant which is used for
+    # starting step length which is smaller than 100*small*ABS(A).
+    # `big` is a large positive machine dependent constant which is used for
     # preventing machine overflows. A reasonable choice is to set big to
     # (approximately) the square root of the largest DOUBLE PRECISION number
     # which can be held in the machine.
-    BIG = sqrt(np.finfo(y.dtype).max)
-    SMALL = np.nextafter(np.finfo(y.dtype).epsneg, 1.0)
+    big = sqrt(np.finfo(y.dtype).max)
+    small = np.nextafter(np.finfo(y.dtype).epsneg, 1.0)
 
     # following dhstrt.f from here
     dx = b - a
     absdx = abs(dx)
-    relper = SMALL**0.375
+    relper = small**0.375
 
     # compute an approximate bound (dfdxb) on the partial derivative of the
     # equation with respect to the independent variable.  protect against an
     # overflow.  also compute a bound (fbnd) on the first derivative locally.
-    da = copysign(max(min(relper * abs(a), absdx), 100.0 * SMALL * abs(a)), dx)
+    da = copysign(max(min(relper * abs(a), absdx), 100.0 * small * abs(a)), dx)
     da = da or relper * dx
     sf = df(a + da, y)                                               # evaluate
     yp = sf - yprime
     delf = norm(yp)
-    dfdxb = BIG
-    if delf < BIG*abs(da):
+    dfdxb = big
+    if delf < big * abs(da):
         dfdxb = delf / abs(da)
     fbnd = norm(sf)
 
@@ -342,9 +343,9 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
         # constant
         fbnd = max(fbnd, norm(yp))
         delf = norm(pv)
-        if delf >= BIG * abs(dely):
+        if delf >= big * abs(dely):
             # protect against an overflow
-            dfdub = BIG
+            dfdub = big
             break
         dfdub = max(dfdub, delf / abs(dely))
 
@@ -360,6 +361,7 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
             dy = pv.copy()                              # abs removed (complex)
             dy[:] = np.where(dy, dy, delf)
         spy[:] = np.where(spy, spy, yp)
+
         # use correct direction if possible.
         yp[:] = np.where(spy, np.copysign(dy.real, spy.real), dy.real)
         if np.issubdtype(y.dtype, np.complexfloating):
@@ -373,7 +375,7 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
     # based.  a value in the middle of the error tolerance range is selected.
     tolexp = np.log10(etol)
     tolsum = tolexp.sum()
-    tolmin = min(tolexp.min(), BIG)
+    tolmin = min(tolexp.min(), big)
     tolp = 10.0 ** (0.5 * (tolsum / neq + tolmin) / (morder + 1))
 
     # compute a starting step size based on the above first and second
@@ -402,10 +404,10 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
         h = min(h, 1.0 / dfdub)
 
     # finally, restrict the step length to be not smaller than
-    # 100*SMALL*abs(a).  however, if a=0. and the computed h underflowed to
-    # zero, the algorithm returns SMALL*abs(b) for the step length.
-    h = max(h, 100.0 * SMALL * abs(a))
-    h = h or SMALL * abs(b)
+    # 100*small*abs(a).  however, if a=0. and the computed h underflowed to
+    # zero, the algorithm returns small*abs(b) for the step length.
+    h = max(h, 100.0 * small * abs(a))
+    h = h or small * abs(b)
 
     # now set direction of integration
     h = copysign(h, dx)
