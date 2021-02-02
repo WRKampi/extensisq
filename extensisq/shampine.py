@@ -12,15 +12,15 @@ class SWAG(OdeSolver):
     """Linear multistep Adams method for non-stiff problems by L.F. Shampine,
     H.A. Watts, and M.K. Gordon.
 
-    It is a variable order, variable stepsize code. The predictor is an Adams
-    Bashforth method of order k, and the corrector is a Adams Moulton method of
-    order k+1. The maximum value of k is 12 (default).
+    This is a variable order, variable stepsize method. The predictor is an
+    Adams Bashforth method of order k, and the corrector is a Adams Moulton
+    method of order k+1. The maximum value of k is 12 (by default).
 
     The original Fortran code is DDEABM [1]_, a descendant of [2]_, with a
     smooth, C1 continuous interpolant for dense output [3]_. This method is
     similar to `ode113` in Matlab.
 
-    Other characteristics: local extrapolation, variable coefficients, PECE
+    Other characteristics are: local extrapolation, variable coefficients, PECE
     mode, scaled divided differences, functional iteration.
 
     Parameters
@@ -141,7 +141,7 @@ class SWAG(OdeSolver):
         self.w = np.empty(k_max)
         self.g = np.empty(k_max + 1)
         self.gi = np.empty(k_max - 1)
-        self.iv = np.zeros(k_max - 2, dtype=np.short)
+        self.iv = np.zeros(max(0, k_max - 2), dtype=np.short)
 
         # Tolerances are dealt with like in scipy: wt is like scipy's scale
         # and will be update each step.  This is only the initial value:
@@ -447,7 +447,7 @@ class SWAG(OdeSolver):
             # Using estimated error at order k+1, determine appropriate order
             # for next step
             if k == 1:
-                if erkp1 < 0.5 * erk:
+                if erkp1 < 0.5 * erk and k < self.k_max:
                     # raise order
                     k = kp1
                     erk = erkp1
@@ -527,9 +527,9 @@ class SwagDenseOutput(DenseOutput):
         gdif = np.diff(og[:kold+1], prepend=0.0)                          # vec
 
         # store data
-        (self.x, self.y, self.kold, self.phi, self.alpha, self.gdif, self.ox,
+        (self.y, self.kold, self.phi, self.alpha, self.gdif,
          self.oy, self.iqq, self.gdi) = (
-            x, y, kold, phi[:, :kold+1].copy(), alpha[1:kold].copy(), gdif, ox,
+            y.copy(), kold, phi[:, :kold+1].copy(), alpha[1:kold].copy(), gdif,
             oy.copy(), iqq[:kold+1], gdi)
 
     def _call_impl(self, t):
@@ -539,8 +539,8 @@ class SwagDenseOutput(DenseOutput):
 
         # load data
         x, y, kold, phi, alpha, gdif, ox, oy, iqq, gdi = (
-            self.x, self.y, self.kold, self.phi, self.alpha, self.gdif,
-            self.ox, self.oy, self.iqq, self.gdi)
+            self.t, self.y, self.kold, self.phi, self.alpha, self.gdif,
+            self.t_old, self.oy, self.iqq, self.gdi)
 
         kp1 = kold + 1
 
