@@ -100,7 +100,7 @@ class SWAG(OdeSolver):
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None, k_max=12,
                  **extraneous):
-        if not isinstance(k_max, int) or k_max < 1 or k_max > 12:
+        if not (isinstance(k_max, int) and k_max > 0 and k_max < 13):
             raise ValueError("`k_max` should be an integer between 1 and 12.")
         warn_extraneous(extraneous)
         super(SWAG, self).__init__(
@@ -118,21 +118,22 @@ class SWAG(OdeSolver):
             self.h = copysign(h_abs, self.direction)
 
         # constants
-        self.k_max = k_max
         small = np.nextafter(np.finfo(self.y.dtype).epsneg, 1)
         self.twou = 2.0 * small
         self.fouru = 4.0 * small
+        self.two = (2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0,
+                    1024.0, 2048.0, 4096.0, 8192.0)
         self.gstr = (0.5, 0.0833, 0.0417, 0.0264, 0.0188, 0.0143, 0.0114,
                      0.00936, 0.00789, 0.00679, 0.00592, 0.00524, 0.00468)
         iq = np.arange(1, k_max + 2)
         self.iqq = 1.0 / (iq * (iq + 1))                                # added
+        self.k_max = k_max                                              # added
         self.eps = 1.0                                       # tolerances in wt
         self.p5eps = 0.5                                     # tolerances in wt
-        # the array TWO of the original code has been removed
 
         # allocate arrays
-        self.p = np.empty(self.n, dtype=self.y.dtype)
-        self.phi = np.empty((self.n, k_max + 2), dtype=self.y.dtype, order='f')
+        self.p = np.empty(self.n, self.y.dtype)
+        self.phi = np.empty((self.n, k_max + 2), self.y.dtype, 'F')
         self.psi = np.empty(k_max)
         self.alpha = np.empty(k_max)
         self.beta = np.empty(k_max)
@@ -141,7 +142,7 @@ class SWAG(OdeSolver):
         self.w = np.empty(k_max)
         self.g = np.empty(k_max + 1)
         self.gi = np.empty(k_max - 1)
-        self.iv = np.zeros(max(0, k_max - 2), dtype=np.short)
+        self.iv = np.zeros(max(0, k_max - 2), np.short)
 
         # Tolerances are dealt with like in scipy: wt is like scipy's scale
         # and will be update each step.  This is only the initial value:
@@ -155,7 +156,7 @@ class SWAG(OdeSolver):
             _round = self.twou * norm(self.y / self.wt)
         if self.p5eps < 100.0 * _round:
             # The compensated summation of the original code that would be
-            # executed if nornd == false has been removed.  Instead, this
+            # executed if nornd == False has been removed.  Instead, this
             # warning is given to the user.
             warn("numerical rounding may limit accuracy at this tolerance.")
         self.phi[:, 0] = self.yp
@@ -181,37 +182,34 @@ class SWAG(OdeSolver):
         # current state
         x = self.t
         y = self.y.copy()
+        self.y_old = self.y                           # added, for dense output
 
-        # load variables  (hold != self.step_size, rounding matters)
-        (hold, h, wt, k, kold, phi, p, yp, psi, alpha, beta, sig, v, w, g,
-         phase1, ns, kprev, ivc, iv, kgi, gi, gstr, iqq, kle4, stiff, eps,
-         p5eps) = (
-          self.hold, self.h, self.wt, self.k, self.kold, self.phi, self.p,
-          self.yp, self.psi, self.alpha, self.beta, self.sig, self.v, self.w,
-          self.g, self.phase1, self.ns, self.kprev, self.ivc, self.iv,
-          self.kgi, self.gi, self.gstr, self.iqq, self.kle4, self.stiff,
-          self.eps, self.p5eps)
+        # load variables (hold != self.step_size, rounding matters)
+        (hold, h, wt, k, kold, phi, yp, psi, alpha, beta, sig, v, w, g,
+         phase1, ns, kprev, ivc, iv, kgi, gi, gstr, iqq, eps, p5eps) = (
+          self.hold, self.h, self.wt, self.k, self.kold, self.phi, self.yp,
+          self.psi, self.alpha, self.beta, self.sig, self.v, self.w, self.g,
+          self.phase1, self.ns, self.kprev, self.ivc, self.iv, self.kgi,
+          self.gi, self.gstr, self.iqq, self.eps, self.p5eps)
 
         # from *** ddes.f ***
         min_step = self.fouru * abs(x)                                  # added
 
         # stiffness detection
-        kle4 += 1
         if kold > 4:
-            kle4 = 0
-        if kle4 > 50 and not stiff and self.k_max > 4:
-            # This warning is issued once, after 50 consequtive steps are taken
-            # with order <= 4.
-            warn("problem appears to be stiff (for this tolerance).")
-            stiff = True
+            self.kle4 = 0
+        else:
+            self.kle4 += 1
+            if self.kle4 > 50 and not self.stiff and self.k_max > 4:
+                # This warning is issued once, after 50 consequtive steps are
+                # taken with order <= 4, while k_max > 4.
+                self.stiff = True
+                warn("problem appears to be stiff (for this tolerance).")
 
         # extrapolate if too close to t_bound
         d = self.t_bound - x
         if abs(d) <= min_step:
-            # for dense output:
-            self.kold = 0
-            p[:] = y
-            # extrapolation
+            self.kold = 0                                    # for dense output
             y[:] += d * yp
             # ouput
             self.t = self.t_bound
@@ -336,7 +334,7 @@ class SWAG(OdeSolver):
             # predict solution and differences
             phi[:, kp1] = phi[:, k]
             phi[:, k] = 0.0
-            p[:] = h * (phi[:, :k] @ g[:k]) + y
+            p = h * (phi[:, :k] @ g[:k]) + y
             for i in range(k, 0, -1):
                 phi[:, i-1] += phi[:, i]
             xold = x
@@ -348,8 +346,6 @@ class SWAG(OdeSolver):
             wt[:] = self.atol + self.rtol * np.maximum(np.abs(p), np.abs(y))
 
             # estimate errors at orders k, k-1, k-2
-            erkm2 = 0.0
-            erkm1 = 0.0
             temp3 = 1.0 / wt
             temp4 = yp - phi[:, 0]
             if k > 2:
@@ -419,8 +415,9 @@ class SWAG(OdeSolver):
         hold = h
 
         # correct and evaluate
-        p[:], y[:] = y, h * g[k] * (yp - phi[:, 0]) + p
+        y[:] = h * g[k] * (yp - phi[:, 0]) + p
         yp[:] = self.fun(x, y)                                       # evaluate
+        # p does not need to store y_old for dense output anymore.
 
         # update differences for next step
         phi[:, k] = yp - phi[:, 0]
@@ -465,7 +462,7 @@ class SWAG(OdeSolver):
         # else: no order change
 
         # With new order determine appropriate step size for next step
-        if phase1 or p5eps >= erk * 2**(k + 1):
+        if phase1 or p5eps >= erk * self.two[k]:
             hnew = h + h
         elif p5eps >= erk:
             # keep step size (double, or don't increase at all)
@@ -485,15 +482,15 @@ class SWAG(OdeSolver):
 
         # store the non-mutable variables for the next step:
         (self.h, self.hold, self.k, self.kold, self.phase1, self.ns,
-         self.kprev, self.ivc, self.kgi, self.kle4, self.stiff) = (
-            h, hold, k, kold, phase1, ns, kprev, ivc, kgi, kle4, stiff)
+         self.kprev, self.ivc, self.kgi) = (
+            h, hold, k, kold, phase1, ns, kprev, ivc, kgi)
         return True, None
 
     def _dense_output_impl(self):
         x = self.t
         ox = self.t_old
         y = self.y
-        oy = self.p                                                     # y_old
+        oy = self.y_old
         kold = self.kold
         if kold:
             return SwagDenseOutput(
@@ -506,8 +503,8 @@ class SWAG(OdeSolver):
 
 
 class SwagDenseOutput(DenseOutput):
-    def __init__(self, x, y, kold, phi, ivc, iv, kgi, gi,
-                 alpha, og, ow, ox, oy, iqq):
+    def __init__(self, x, y,
+                 kold, phi, ivc, iv, kgi, gi, alpha, og, ow, ox, oy, iqq):
         super(SwagDenseOutput, self).__init__(ox, x)
 
         # compute the double integral term gdi
@@ -527,32 +524,29 @@ class SwagDenseOutput(DenseOutput):
         gdif = np.diff(og[:kold+1], prepend=0.0)                          # vec
 
         # store data
-        (self.y, self.kold, self.phi, self.alpha, self.gdif,
-         self.oy, self.iqq, self.gdi) = (
-            y.copy(), kold, phi[:, :kold+1].copy(), alpha[1:kold].copy(), gdif,
-            oy.copy(), iqq[:kold+1], gdi)
+        (self.y, self.kold, self.phi, self.alpha, self.gdif, self.oy, self.iqq,
+         self.gdi) = (y, kold, phi[:, :kold+1].copy(), alpha[1:kold].copy(),
+                      gdif, oy, iqq[:kold+1], gdi)
 
     def _call_impl(self, t):
         # interpolation of derivative is deactivated, because it is unsupported
         # in scipy.  Nevertheless, it should work if all lines marked "prime"
         # are uncommented.
 
-        # load data
+        # load data (phi, alpha and iqq were reduced)
         x, y, kold, phi, alpha, gdif, ox, oy, iqq, gdi = (
             self.t, self.y, self.kold, self.phi, self.alpha, self.gdif,
             self.t_old, self.oy, self.iqq, self.gdi)
 
-        kp1 = kold + 1
-
         # work arrays
-        w = np.empty(kp1)
-        g = np.empty(kp1)
-        # c = np.empty(kp1)                                             # prime
+        g = np.empty(kold + 1)
+        # c = np.empty(kold + 1)                                        # prime
 
         # interpolate point by point
-        yout_array = np.empty((self.y.size, t.size), dtype=self.y.dtype)
+        yout_array = np.empty((y.size, t.size), y.dtype, 'F')
         # ypout_array = np.empty_like(yout_array)                       # prime
         for it, xout in enumerate(np.atleast_1d(t)):
+
             # ***first executable statement dintp
             hi = xout - ox
             h = x - ox
@@ -560,7 +554,7 @@ class SwagDenseOutput(DenseOutput):
             xim1 = xi - 1.0
 
             # initialize w(*) for computing g(*)
-            w[:] = xi * (np.cumprod(np.full(kp1, xi)) * iqq)
+            w = xi * (np.cumprod(np.full(kold + 1, xi)) * iqq)
 
             # compute g(*) and c(*)
             g[0] = xi
