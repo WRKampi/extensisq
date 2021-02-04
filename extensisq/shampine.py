@@ -298,7 +298,7 @@ class SWAG(OdeSolver):
                             i = km1 - j
                             v[i] -= alp * v[i+1]
                             w[i] = v[i]
-                        if k == ns:
+                        if k == ns and jv < nsm1:
                             kgi = nsm1
                             gi[kgi-1] = w[1]
                     # update v(*) and set w(*)
@@ -519,7 +519,7 @@ class SwagDenseOutput(DenseOutput):
                 m = kold - iw + 2
             for i in range(m, kold):
                 gdi = ow[kold-i] - alpha[i] * gdi
-        # and gdif, (vector here, scalar in original code)
+        # and gdif, vector here, scalar in original code
         gdif = np.diff(og[:kold+1], prepend=0.0)                          # vec
 
         # store data
