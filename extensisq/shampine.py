@@ -132,7 +132,6 @@ class SWAG(OdeSolver):
         self.p5eps = 0.5                                     # tolerances in wt
 
         # allocate arrays
-        self.p = np.empty(self.n, self.y.dtype)
         self.phi = np.empty((self.n, k_max + 2), self.y.dtype, 'F')
         self.psi = np.empty(k_max)
         self.alpha = np.empty(k_max)
