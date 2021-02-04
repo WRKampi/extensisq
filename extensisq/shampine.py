@@ -255,11 +255,11 @@ class SWAG(OdeSolver):
                 ns = 0
             if ns <= kold:
                 ns += 1
-            nsm1 = ns - 1                                               # added
 
             if k >= ns:
                 # Compute those components of alpha(*), beta(*), psi(*), sig(*)
                 # which are changed
+                nsm1 = ns - 1                                           # added
                 psi_old = psi[nsm1:km1].copy()                          # added
                 psi[nsm1] = h * ns
                 alpha[nsm1] = 1.0 / ns
@@ -294,14 +294,13 @@ class SWAG(OdeSolver):
                             if k == 2:
                                 kgi = 1
                                 gi[0] = w[1]
-                        for j in range(jv, nsm1):
+                        for j, alp in enumerate(alpha[jv:nsm1], start=jv):
                             i = km1 - j
-                            v[i] -= alpha[j] * v[i+1]
+                            v[i] -= alp * v[i+1]
                             w[i] = v[i]
                         if k == ns:
                             kgi = nsm1
                             gi[kgi-1] = w[1]
-
                     # update v(*) and set w(*)
                     limit1 = kp1 - ns
                     v[:limit1] -= alpha[nsm1] * v[1:limit1+1]
@@ -316,9 +315,9 @@ class SWAG(OdeSolver):
 
                 # compute the g(*) in the work vector w(*)
                 kprev = k
-                for i in range(ns, k):
+                for i, alp in enumerate(alpha[ns:k], start=ns):
                     limit2 = k - i
-                    w[:limit2] -= alpha[i] * w[1:limit2+1]
+                    w[:limit2] -= alp * w[1:limit2+1]
                     g[i+1] = w[0]
 
             # ***     end block 1     ***
