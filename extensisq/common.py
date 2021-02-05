@@ -237,7 +237,7 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
 
     Reference
     ---------
-    .. [1] H.A. Watts, Starting step size for an ODE solver, Journal of
+    .. [1] H.A. Watts, "Starting step size for an ODE solver", Journal of
            Computational and Applied Mathematics, Vol. 9, No. 2, 1983,
            pp. 177-191, ISSN 0377-0427.
            https://doi.org/10.1016/0377-0427(83)90040-7
