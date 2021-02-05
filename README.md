@@ -25,9 +25,9 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 The numbers in the names refer to the continuous methods. These higher order methods, unlike conventional discrete methods, do not require additional function evaluations for dense output.
 
 One multistep method is implemented:
-* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code DDEABM. Matlab's method `ode113` should be similar.
+* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
 
-The initial step size estimator [7] is used for all exensisq methods.
+The initial step size estimator [7] is also used for all other exensisq methods.
 
 ## Installation
 
@@ -51,14 +51,14 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Notice that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o`, `Ts45`, `Pri6`, `Pri7` and `Pri8`) can be used in a similar way.
+Notice that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o`, `Ts45`, `Pri6`, `Pri7`, `Pri8` and `SWAG`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
 2. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
 3. [Lotka Volterra equation, all fifth order methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 4. [Riccati equation, higher order Prince methods](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
-5. [Van der Pol's equaltion, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
+5. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28, ISSN 0898-1221. https://doi.org/10.1016/0898-1221(96)00141-1
