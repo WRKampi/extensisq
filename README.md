@@ -25,7 +25,7 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 The numbers in the names refer to the continuous methods. These higher order methods, unlike conventional discrete methods, do not require additional function evaluations for dense output.
 
 One multistep method is implemented:
-* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code DDEABM. Matlab's method `ode113` should be similar.
+* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
 
 The initial step size estimator [7] is used for all exensisq methods.
 
