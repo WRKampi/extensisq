@@ -9,7 +9,7 @@ This package extends scipy.integrate with various methods (OdeSolver classes) fo
 [![release-date](https://img.shields.io/github/release-date/WRKampi/extensisq?style=flat-square)](https://github.com/WRKampi/extensisq/releases)
 
 
-Currently, several explicit Runge Kutta methods (for non-stiff problems) are provided.
+Currently, several explicit methods (for non-stiff problems) are provided.
 
 Three explicit Runge Kutta methods of order 5 and two variants are implemented:
 * `BS45`: efficient solver with an accurate high order interpolant by Bogacki and Shampine [1]. The variant `BS45_i` has a free, lower order interpolant.
@@ -23,6 +23,11 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 * `Pri8`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
 
 The numbers in the names refer to the continuous methods. These higher order methods, unlike conventional discrete methods, do not require additional function evaluations for dense output.
+
+One multistep method is implemented:
+* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code DDEABM. Matlab's method `ode113` should be similar.
+
+The initial step size estimator [7] is used for all exensisq methods.
 
 ## Installation
 
@@ -53,7 +58,7 @@ More examples are available as notebooks:
 2. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
 3. [Lotka Volterra equation, all fifth order methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 4. [Riccati equation, higher order Prince methods](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
-
+5. [Van der Pol's equaltion, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28, ISSN 0898-1221. https://doi.org/10.1016/0898-1221(96)00141-1
@@ -63,3 +68,9 @@ More examples are available as notebooks:
 [3] Ch. Tsitouras, "Runge-Kutta pairs of order 5(4) satisfying only the first column simplifying assumption", Computers & Mathematics with Applications, Vol. 62, No. 2, pp. 770 - 775, 2011. https://doi.org/10.1016/j.camwa.2011.06.002
 
 [4] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K., September 6 2018. http://www.peteprince.co.uk/parallel.pdf
+
+[5] L.F. Shampine and M.K. Gordon, "Computer solution of ordinary differential equations: The initial value problem", San Francisco, W.H. Freeman.
+
+[6] H.A. Watts and L.F. Shampine, "Smoother Interpolants for Adams Codes",  SIAM Journal on Scientific and Statistical Computing, 1986, Vol. 7, No. 1, pp. 334-345. ISSN 0196-5204. https://doi.org/10.1137/0907022
+
+[7] H.A. Watts, "Starting step size for an ODE solver", Journal of Computational and Applied Mathematics, Vol. 9, No. 2, 1983, pp. 177-191, ISSN 0377-0427. https://doi.org/10.1016/0377-0427(83)90040-7
