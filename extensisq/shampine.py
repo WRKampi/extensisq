@@ -226,7 +226,6 @@ class SWAG(OdeSolver):
 
         # (***first executable statement dsteps)
         if abs(h) < min_step:
-            h = copysign(min_step, h)
             return False, self.TOO_SMALL_STEP
 
         # If error tolerance is too small, increase it to an acceptable value
