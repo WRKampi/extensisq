@@ -90,7 +90,7 @@ class SWAG(OdeSolver):
            https://www.netlib.org/slatec/src/
     .. [2] L.F. Shampine and M.K. Gordon, "Computer solution of ordinary
            differential equations: The initial value problem", San Francisco,
-           W.H. Freeman.
+           W.H. Freeman, 1975.
     .. [3] H.A. Watts and L.F. Shampine, "Smoother Interpolants for Adams
            Codes",  SIAM Journal on Scientific and Statistical Computing, 1986,
            Vol. 7, No. 1, pp. 334-345. ISSN 0196-5204
@@ -111,7 +111,9 @@ class SWAG(OdeSolver):
         # starting step size
         self.yp = self.fun(self.t, self.y)                 # initial evaluation
         if first_step is None:
-            self.h = h_start(self.fun, self.t, self.t_bound, self.y, self.yp,
+            b = self.t + copysign(min(abs(self.t_bound - self.t), 
+                                      self.max_step), self.direction)
+            self.h = h_start(self.fun, self.t, b, self.y, self.yp,
                              1, self.rtol, self.atol)
         else:
             h_abs = validate_first_step(first_step, t0, t_bound)

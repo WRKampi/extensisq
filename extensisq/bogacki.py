@@ -169,7 +169,6 @@ class BS45(RungeKutta):
     def __init__(self, fun, t0, y0, t_bound, **extraneous):
         super(BS45, self).__init__(fun, t0, y0, t_bound, **extraneous)
         # custom initialization to create extended storage for dense output
-        # and to make the interpolator selectable
         self.K_extended = np.zeros((self.n_stages+self.n_extra_stages+1,
                                     self.n), dtype=self.y.dtype)
         self.K = self.K_extended[:self.n_stages+1]
