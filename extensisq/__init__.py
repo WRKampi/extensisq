@@ -6,6 +6,7 @@ from extensisq.bogacki import BS45, BS45_i
 from extensisq.cash import CK45, CK45_o
 from extensisq.prince import Pri6, Pri7, Pri8
 from extensisq.shampine import SWAG
+from extensisq.common import NFS
 
 __version__ = '0.2.0'
 __author__ = 'W.R. Kampinga'
