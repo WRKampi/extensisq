@@ -111,7 +111,7 @@ class SWAG(OdeSolver):
         # starting step size
         self.yp = self.fun(self.t, self.y)                 # initial evaluation
         if first_step is None:
-            b = self.t + copysign(min(abs(self.t_bound - self.t), 
+            b = self.t + copysign(min(abs(self.t_bound - self.t),
                                       self.max_step), self.direction)
             self.h = h_start(self.fun, self.t, b, self.y, self.yp,
                              1, self.rtol, self.atol)
@@ -147,8 +147,8 @@ class SWAG(OdeSolver):
 
         # Tolerances are dealt with like in scipy: wt is like scipy's scale
         # and will be update each step.  This is only the initial value:
-        self.wt = self.atol + self.rtol * np.maximum(
-            np.abs(self.y), np.abs(self.y - self.h*self.yp))
+        self.wt = self.atol + self.rtol * 0.5*(
+            np.abs(self.y) + np.abs(self.y - self.h*self.yp))
 
         # initialization
         # from  *** block 0 ***  of dsteps.f, under IF START:
@@ -159,7 +159,8 @@ class SWAG(OdeSolver):
             # The compensated summation of the original code that would be
             # executed if nornd == False has been removed.  Instead, this
             # warning is given to the user.
-            warn("numerical rounding may limit accuracy at this tolerance.")
+            warn("Numerical rounding may limit the accuracy "
+                 "at this tolerance.")
         self.phi[:, 0] = self.yp
         self.phi[:, 1] = 0.0
         self.sig[0] = 1.0
@@ -175,7 +176,6 @@ class SWAG(OdeSolver):
         self.ns = 0
 
         # from ddes.f, for stiffness detection
-        self.stiff = False
         self.kle4 = 0
 
     def _step_impl(self):
@@ -201,11 +201,11 @@ class SWAG(OdeSolver):
             self.kle4 = 0
         else:
             self.kle4 += 1
-            if self.kle4 > 50 and not self.stiff and self.k_max > 4:
+            if self.kle4 > 50 and self.k_max > 4:
                 # This warning is issued once, after 50 consequtive steps are
                 # taken with order <= 4, while k_max > 4.
-                self.stiff = True
-                warn("problem appears to be stiff (for this tolerance).")
+                warn("Your problem appears to be stiff (for this tolerance).")
+                self.kle4 = 0
 
         # extrapolate if too close to t_bound
         d = self.t_bound - x
@@ -342,7 +342,7 @@ class SWAG(OdeSolver):
             yp[:] = self.fun(x, p)                                   # evaluate
 
             # added update of wt:
-            wt[:] = self.atol + self.rtol * np.maximum(np.abs(p), np.abs(y))
+            wt[:] = self.atol + self.rtol * 0.5*(np.abs(p) + np.abs(y))
 
             # estimate errors at orders k, k-1, k-2
             temp3 = 1.0 / wt
