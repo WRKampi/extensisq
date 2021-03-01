@@ -1,4 +1,5 @@
 import numpy as np
+from warnings import warn
 from scipy.integrate._ivp.rk import norm, SAFETY, MAX_FACTOR, MIN_FACTOR
 from extensisq.common import RungeKutta, HornerDenseOutput, NFS
 
@@ -55,6 +56,15 @@ class BS45(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -95,6 +105,8 @@ class BS45(RungeKutta):
     error_estimator_order = 4
     n_stages = 7        # the effective nr (total nr of stages is 8)
     n_extra_stages = 3  # for dense output
+    tanang = 5.2
+    stbrad = 3.9
 
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1])
@@ -166,8 +178,11 @@ class BS45(RungeKutta):
             -1774004627/25270245, -1774004627/75810735],
         [0, 12, 59, 117, 105, 35]])
 
-    def __init__(self, fun, t0, y0, t_bound, **extraneous):
-        super(BS45, self).__init__(fun, t0, y0, t_bound, **extraneous)
+    def __init__(self, fun, t0, y0, t_bound, nfev_stiff_detect=5000,
+                 **extraneous):
+        super(BS45, self).__init__(
+            fun, t0, y0, t_bound, nfev_stiff_detect=nfev_stiff_detect,
+            **extraneous)
         # custom initialization to create extended storage for dense output
         self.K_extended = np.zeros((self.n_stages+self.n_extra_stages+1,
                                     self.n), dtype=self.y.dtype)
@@ -182,24 +197,35 @@ class BS45(RungeKutta):
         y = self.y
 
         # limit step size
-        min_step = 10 * np.abs(np.nextafter(t, self.direction * np.inf) - t)
-        h_abs = min(self.max_step, max(min_step, self.h_abs))
+        h_abs = self.h_abs
+        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
+        h_abs = min(self.max_step, max(min_step, h_abs))
 
-        # use extrapolation in the rare cases where the previous step ended
-        # too close to t_bound.
-        d = abs(self.t_bound - t)
-        if d < min_step:
-            h = self.t_bound - t
-            y_new = y + h * self.f
-            self.h_previous = h
-            self.y_old = y
-            self.t = self.t_bound
-            self.y = y_new
-            self.f = None                          # used by _dense_output_impl
-            return True, None
-
-        # don't step over t_bound
-        h_abs = min(h_abs, d)
+        # handle final integration steps
+        d = abs(self.t_bound - t)               # remaining interval
+        if d < 2 * h_abs:
+            if d >= min_step:
+                if h_abs < d:
+                    # h_abs < d < 2 * h_abs:
+                    # split d over last two steps ("look ahead").
+                    # This reduces the chance of a very small last step.
+                    h_abs = max(0.5 * d, min_step)
+                else:
+                    # d <= h_abs:
+                    # don't step over t_bound
+                    h_abs = d
+            else:
+                # d < min_step:
+                # use linear extrapolation in this rare case
+                h = self.t_bound - t
+                y_new = y + h * self.f
+                self.h_previous = h
+                self.y_old = y
+                self.t = self.t_bound
+                self.y = y_new
+                self.f = None                    # to signal _dense_output_impl
+                warn('\nLinear extrapolation was used in the final step.')
+                return True, None
 
         # loop until step accepted
         step_accepted = False
@@ -261,13 +287,22 @@ class BS45(RungeKutta):
         # output
         self.t = t_new
         self.y = y_new
+
+        # stiffness detection
+        if self.maxfcn:
+            self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
+            self._stiff()
+            self.okstp += 1
+            if self.okstp == 20:
+                self.havg = h
+                self.jflstp = 0
+
         return True, None
 
     def _estimate_error_norm_pre(self, y, h):
         # first error estimate
         # y_new is not available yet for scale, so use y_old instead
-        scale = self.atol + self.rtol * np.maximum(
-            np.abs(y), np.abs(self.y_old))
+        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(self.y_old))
         err = h * (self.K[:6, :].T @ self.E_pre)
         return norm(err / scale)
 
@@ -355,6 +390,15 @@ class BS45_i(BS45):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -441,188 +485,3 @@ class BS45_i(BS45):
 
     def _dense_output_impl(self):
         return super(BS45, self)._dense_output_impl()
-
-
-if __name__ == '__main__':
-    """Construction of a free interpolant of the BS45 pair. The approach from
-    "Runge-Kutta pairs of order 5(4) satisfying only the first column
-    simplifying assumption" by Ch Tsitouras is followed.
-    Bogacki has derived an interpolant for this method as well, but I was not
-    able to find a copy of his thesis that contains this interpolant.
-    """
-    # import numpy as np
-    import matplotlib.pyplot as plt
-    import sympy
-    from sympy.solvers.solveset import linsolve
-    from sympy import Rational as R
-    from pprint import pprint
-
-    n_stages = 8            # including derivative evaluation at end of step
-    order = 5               # of interpolation in t (not h)
-    T5_method4 = 1.06e-4    # error of embedded fourth order method
-
-    t = sympy.symbols('t', real=True)
-    bi = sympy.symbols(f'bi0:{n_stages}', real=True)
-    bi_vec = sympy.Matrix(bi)
-
-    # Method
-    A = sympy.Matrix([      # full A matrix, including last line
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [R(1, 6), 0, 0, 0, 0, 0, 0, 0],
-        [R(2, 27), R(4, 27), 0, 0, 0, 0, 0, 0],
-        [R(183, 1372), R(-162, 343), R(1053, 1372), 0, 0, 0, 0, 0],
-        [R(68, 297), R(-4, 11), R(42, 143), R(1960, 3861), 0, 0, 0, 0],
-        [R(597, 22528), R(81, 352), R(63099, 585728), R(58653, 366080),
-         R(4617, 20480), 0, 0, 0],
-        [R(174197, 959244), R(-30942, 79937), R(8152137, 19744439),
-         R(666106, 1039181), R(-29421, 29068), R(482048, 414219), 0, 0],
-        [R(587, 8064), 0, R(4440339, 15491840), R(24353, 124800),
-         R(387, 44800), R(2152, 5985), R(7267, 94080), 0]])
-
-    c = sympy.Matrix([0, R(1, 6), R(2, 9), R(3, 7), R(2, 3), R(3, 4), 1, 1])
-    e = sympy.Matrix([1, 1, 1, 1, 1, 1, 1, 1])
-
-    # error terms up to order 4
-    c2 = c.multiply_elementwise(c)
-    Ac = A*c
-    c3 = c2.multiply_elementwise(c)
-    cAc = c.multiply_elementwise(Ac)
-    Ac2 = A*c2
-    A2c = A*Ac
-
-    T11 = bi_vec.dot(e) - t
-    T21 = bi_vec.dot(c) - t**2/2
-
-    T31 = bi_vec.dot(c2)/2 - t**3/6
-    T32 = bi_vec.dot(Ac) - t**3/6
-
-    T41 = bi_vec.dot(c3)/6 - t**4/24
-    T42 = bi_vec.dot(cAc) - t**4/8
-    T43 = bi_vec.dot(Ac2)/2 - t**4/24
-    T44 = bi_vec.dot(A2c) - t**4/24
-
-    # solve polynomials to let all terms up to order 4 vanish
-    bi_vec_t = sympy.Matrix(linsolve([
-        T11, T21, T31, T32, T41, T42, T43, T44], bi).args[0])
-    i_free_poly = [i for i, (term, poly) in enumerate(zip(bi_vec_t, bi))
-                   if poly == term]
-    free_polys = [bi[i] for i in i_free_poly]
-    print('free polynomials:', free_polys)      # polys bi5 and bi_7 are free
-
-    # Make these free polynommials explicit in t
-    parameters = sympy.symbols([f'bi{i}_0:{order + 1}' for i in i_free_poly])
-    polys = []
-    for coefs in parameters:
-        p = 0
-        for i, coef in enumerate(coefs):
-            p = p + coef * t**i
-        polys.append(p)
-
-    # substitute in bi_vec_t
-    subs_dict = dict(zip(free_polys, polys))
-    bi_vec_t = bi_vec_t.subs(subs_dict)
-
-    # demand continuity at start and end of step
-    d_bi_vec_t = sympy.diff(bi_vec_t, t)        # derivative
-    # C0 at t=0
-    C0_0 = [eq for eq in bi_vec_t.subs(t, 0)]
-    # C0 at t=1
-    C0_1 = [eq for eq in (bi_vec_t.subs(t, 1) - A[-1, :].T)]
-    # C1 at t=0
-    C1_0 = d_bi_vec_t.subs(t, 0)
-    C1_0[0] = C1_0[0] - 1
-    C1_0 = [eq for eq in C1_0]
-    # C1 at t=1
-    C1_1 = d_bi_vec_t.subs(t, 1)
-    C1_1[-1] = C1_1[-1] - 1
-    C1_1 = [eq for eq in C1_1]
-
-    # combine equations in list
-    eqns = C0_0
-    eqns.extend(C0_1)
-    eqns.extend(C1_0)
-    eqns.extend(C1_1)
-
-    # combine parameters in list
-    params = []
-    for p in parameters:
-        params.extend(p)
-
-    # solve continuity constraints
-    sol1 = linsolve(eqns, params).args[0]
-
-    # whych params are still free?
-    free_params = [p for s, p in zip(sol1, params) if s == p]
-    print('free parameters:', free_params)
-    # remaining free parameters: bi5_4, bi5_5, bi7_4, bi7_5
-
-    # update bi_vec_t
-    subs_dict = dict(zip(params, sol1))
-    bi_vec_t = bi_vec_t.subs(subs_dict)
-
-    # find value for free parameter that minimizes the 5th order error terms
-
-    # error terms of order 5
-    c4 = c3.multiply_elementwise(c)
-    c2Ac = c2.multiply_elementwise(Ac)
-    Ac_Ac = Ac.multiply_elementwise(Ac)
-    cAc2 = c.multiply_elementwise(Ac2)
-    Ac3 = A*c3
-    cA2c = c.multiply_elementwise(A2c)
-    A_cAc = A*cAc
-    A2c2 = A*Ac2
-    A3c = A*A2c
-
-    T51 = bi_vec_t.dot(c4)/24 - t**5/120
-    T52 = bi_vec_t.dot(c2Ac)/2 - t**5/20
-    T53 = bi_vec_t.dot(Ac_Ac)/2 - t**5/40
-    T54 = bi_vec_t.dot(cAc2)/2 - t**5/30
-    T55 = bi_vec_t.dot(Ac3)/6 - t**5/120
-    T56 = bi_vec_t.dot(cA2c) - t**5/30
-    T57 = bi_vec_t.dot(A_cAc) - t**5/40
-    T58 = bi_vec_t.dot(A2c2)/2 - t**5/120
-    T59 = bi_vec_t.dot(A3c) - t**5/120
-
-    # error norm 5 (omitting square root for simplification)
-    T5_norm_t = (T51**2 + T52**2 + T53**2 + T54**2 + T55**2 + T56**2 + T57**2 +
-                 T58**2 + T59**2)
-    T5_norm_i = sympy.integrate(T5_norm_t, (t, 0, 1))
-
-    # minimize norm -> find root of derivative
-    eqns = []
-    for param in free_params:
-        eqns.append(sympy.diff(T5_norm_i, param))
-    if eqns:
-        sol2 = linsolve(eqns, free_params).args[0]
-    else:
-        sol2 = []
-    print('optimal value of free parameters:', sol2)
-
-    # update bi_vec_t and norms
-    subs_dict = dict(zip(free_params, sol2))
-    bi_vec_t = bi_vec_t.subs(subs_dict)
-    T5_norm_t = sympy.sqrt(T5_norm_t.subs(subs_dict))   # now take sqrt
-
-    # create numerical function for plotting
-    T5_fun = sympy.lambdify(t, T5_norm_t, 'numpy')
-    t_ = np.linspace(0., 1., 101)
-    T5_max = T5_fun(t_).max()
-    print('T_5 max:', T5_max)
-    print('T5 max interp/T5 method:', T5_max.max()/T5_method4)
-
-    print('resulting interpolant:')
-    pprint(bi_vec_t)
-
-    # plot error
-    plt.plot(t_, T5_fun(t_), label='free 4th order interpolant')
-    plt.axhline(T5_method4, ls='--', label='embedded 4th order method')
-    plt.tight_layout
-    plt.xlim(0, 1)
-    plt.ylim((0, 6e-4))
-    plt.xlabel(r'$\theta$')
-    plt.ylabel(r'error $\hat{T}_5$')
-    plt.legend(loc=1, ncol=2)
-    plt.title('free interpolant for BS45_i')
-    plt.tight_layout()
-    plt.savefig('free interpolant for BS45_i')
-    plt.show()

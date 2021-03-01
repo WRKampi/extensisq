@@ -1,13 +1,42 @@
 import numpy as np
 from math import sqrt, copysign
+from warnings import warn
 from scipy.integrate._ivp.common import (
-    validate_max_step, validate_tol, norm, validate_first_step,
-    warn_extraneous)
+    validate_max_step, norm, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
 from scipy.integrate._ivp.rk import SAFETY, MIN_FACTOR, MAX_FACTOR
+import logging
 
 
 NFS = np.array(0)                                         # failed step counter
+
+
+def validate_tol(rtol, atol, y):
+    """Validate tolerance values rtol and atol can be scalar or array-like.
+    The bound values are from RKSuite. These differ from those in scipy.
+    Bounds are applied without warning.
+    """
+    atol = np.asarray(atol)
+    rtol = np.asarray(rtol)
+    if atol.ndim > 0 and atol.shape != y.size:
+        raise ValueError("`atol` has wrong shape.")
+    if np.any(atol < 0):
+        raise ValueError("`atol` must be positive.")
+    if rtol.ndim > 0 and rtol.shape != y.size:
+        raise ValueError("`rtol` has wrong shape.")
+    if np.any(rtol < 0):
+        raise ValueError("`rtol` must be positive.")
+
+    # atol cannot be exactly zero anymore.
+    # For double precision float: sqrt(tiny) ~ 1.5e-154
+    tiny = np.finfo(y.dtype).tiny
+    atol = np.maximum(atol, sqrt(tiny))
+
+    # rtol is bounded from both sides.
+    # The lower bound is lower than in scipy.
+    epsneg = np.finfo(y.dtype).epsneg
+    rtol = np.minimum(np.maximum(rtol, 10 * epsneg), 0.01)
+    return rtol, atol
 
 
 class RungeKutta(OdeSolver):
@@ -17,58 +46,101 @@ class RungeKutta(OdeSolver):
     differences are:
       - Conventional (non FSAL) methods are detected and failed steps cost
         one function evaluation less than with the scipy implementation.
-      - Linear extrapolation is used in the rare case in which a step ends
-        very close to the integration bound.
       - A different, more elaborate estimate for the size of the first step
         is used.
       - Horner's rule is used for dense output calculation.
-      - a failed step counter is added.
+      - A failed step counter is added.
+      - The stepsize near the end of the integration is different:
+        - look ahead to prevent too small step sizes
+        - linear extrapolation if the last step is too small despite it.
+      - the min_step accounts for the distance between C-values
+      - the scale (weight) is smoothed differently
+      - stiffness detection is added, can be turned off
     """
 
-    # ### implement ###
-    # n_stages : int
-    #    effective number of stages
+    # effective number of stages
     n_stages: int = NotImplemented
 
-    # order : int
-    #    order of the main method
+    # order of the main method
     order: int = NotImplemented
 
-    # error_estimator_order : int
-    #    order of the secondary embedded method
+    # order of the secondary embedded method
     error_estimator_order: int = NotImplemented
 
-    # A : ndarray[n_stages, n_stages]
-    #    runge kutta coefficient matrix
-    A: np.ndarray = NotImplemented
+    # runge kutta coefficient matrix
+    A: np.ndarray = NotImplemented              # shape: [n_stages, n_stages]
 
-    # B : ndarray[n_stages]
-    #    output coefficients (weights)
-    B: np.ndarray = NotImplemented
+    # output coefficients (weights)
+    B: np.ndarray = NotImplemented              # shape: [n_stages]
 
-    # C : ndarray[n_stages]
-    #    time fraction coefficients (nodes)
-    C: np.ndarray = NotImplemented
+    # time fraction coefficients (nodes)
+    C: np.ndarray = NotImplemented              # shape: [n_stages]
 
-    # E : ndarray[n_stages + 1]
-    #    error coefficients (weights Bh - B)
-    E: np.ndarray = NotImplemented
+    # error coefficients (weights Bh - B)
+    E: np.ndarray = NotImplemented              # shape: [n_stages + 1]
 
-    # P : ndarray[n_stages + 1, order_polynomial]
-    #    interpolation coefficients
-    P: np.ndarray = NotImplemented
+    # dense output interpolation coefficients
+    P: np.ndarray = NotImplemented              # shape: [n_stages + 1,
+    #                                                     order_polynomial]
+
+    # Parameters for stiffness detection. These are not needed if stiffness
+    # detection is disabled (by setting nfev_stiff_detect=0).
+    stbrad: float = NotImplemented              # radius of the arc
+    tanang: float = NotImplemented              # tan(valid angle < pi/2)
+
+    def _init_min_step_parameters(self):
+        """Define the parameters h_min_a and h_min_b for the min_step rule:
+            min_step = max(h_min_a * abs(t), h_min_b)
+        from RKSuite.
+        """
+
+        # minimum difference between distinct C-values
+        cdiff = 1.
+        for c1 in self.C:
+            for c2 in self.C:
+                diff = abs(c1 - c2)
+                if diff:
+                    cdiff = min(cdiff, diff)
+        small = 1e-3
+        if cdiff < small:
+            cdiff = small
+            logging.warning(
+                'Some C-values of this Runge Kutta method are nearly the '
+                'same but not identical. This limits the minimum stepsize'
+                'You may want to check the implementation of this method.')
+
+        # determine min_step parameters
+        epsneg = np.finfo(self.y.dtype).epsneg
+        tiny = np.finfo(self.y.dtype).tiny
+        h_min_a = 10 * epsneg / cdiff
+        h_min_b = sqrt(tiny)
+        return h_min_a, h_min_b
+
+    def _init_stiffness_detection(self, nfev_stiff_detect):
+        if not (isinstance(nfev_stiff_detect, int) and nfev_stiff_detect >= 0):
+            raise ValueError(
+                "`nfev_stiff_detect` must be a non-negative integer.")
+        self.maxfcn = nfev_stiff_detect         # test each maxfcn evaluations
+        if nfev_stiff_detect:
+            self.okstp = 0                      # successful step counter
+            self.jflstp = 0                     # failed step counter, last 40
+            self.havg = 0.0                     # average stepsize
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
-                 atol=1e-6, vectorized=False, first_step=None, **extraneous):
-        # mostly follows the scipy implementation of RungeKutta
+                 atol=1e-6, vectorized=False, first_step=None,
+                 nfev_stiff_detect=5000, **extraneous):
         warn_extraneous(extraneous)
         super(RungeKutta, self).__init__(fun, t0, y0, t_bound, vectorized,
                                          support_complex=True)
-        self.FSAL = 1 if self.E[self.n_stages] else 0
-        self.y_old = None
         self.max_step = validate_max_step(max_step)
-        self.rtol, self.atol = validate_tol(rtol, atol, self.n)
+        self.rtol, self.atol = validate_tol(rtol, atol, self.y)
         self.f = self.fun(self.t, self.y)
+        if self.f.dtype != self.y.dtype:
+            raise TypeError('dtypes of solution and derivative do not match')
+        self._init_stiffness_detection(nfev_stiff_detect)
+        self.h_min_a, self.h_min_b = self._init_min_step_parameters()
+
+        # size of first step:
         if first_step is None:
             b = self.t + self.direction * min(
                 abs(self.t_bound - self.t), self.max_step)
@@ -77,10 +149,13 @@ class RungeKutta(OdeSolver):
                 self.error_estimator_order, self.rtol, self.atol))
         else:
             self.h_abs = validate_first_step(first_step, t0, t_bound)
+
         self.K = np.empty((self.n_stages + 1, self.n), self.y.dtype)
         self.error_exponent = -1 / (self.error_estimator_order + 1)
+        self.FSAL = 1 if self.E[self.n_stages] else 0
         self.h_previous = None
-        NFS[()] = 0                                 # reset failed step counter
+        self.y_old = None
+        NFS[()] = 0                             # global failed step counter
 
     def _step_impl(self):
         # mostly follows the scipy implementation of RungeKutta
@@ -88,26 +163,38 @@ class RungeKutta(OdeSolver):
         y = self.y
 
         # limit step size
-        min_step = 10 * np.abs(np.nextafter(t, self.direction * np.inf) - t)
-        h_abs = min(self.max_step, max(min_step, self.h_abs))
+        h_abs = self.h_abs
+        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
+        h_abs = min(self.max_step, max(min_step, h_abs))
 
-        # use extrapolation in the rare cases where the previous step ended
-        # too close to t_bound.
-        d = abs(self.t_bound - t)
-        if d <= min_step:
-            h = self.t_bound - t
-            y_new = y + h * self.f
-            self.h_previous = h
-            self.y_old = y
-            self.t = self.t_bound
-            self.y = y_new
-            self.f = None                          # used by _dense_output_impl
-            return True, None
+        # handle final integration steps
+        d = abs(self.t_bound - t)                          # remaining interval
+        if d < 2 * h_abs:
+            if d >= min_step:
+                if h_abs < d:
+                    # h_abs < d < 2 * h_abs:
+                    # split d over last two steps ("look ahead").
+                    # This reduces the chance of a very small last step.
+                    h_abs = max(0.5 * d, min_step)
+                else:
+                    # d <= h_abs:
+                    # don't step over t_bound
+                    h_abs = d
+            else:
+                # d < min_step:
+                # use linear extrapolation in this rare case
+                h = self.t_bound - t
+                y_new = y + h * self.f
+                self.h_previous = h
+                self.y_old = y
+                self.t = self.t_bound
+                self.y = y_new
+                self.f = None                      # signals _dense_output_impl
+                logging.warning(
+                    'Linear extrapolation was used in the final step.')
+                return True, None
 
-        # don't step over t_bound
-        h_abs = min(h_abs, d)
-
-        # loop until step accepted
+        # loop until the step is accepted
         step_accepted = False
         step_rejected = False
         while not step_accepted:
@@ -128,6 +215,7 @@ class RungeKutta(OdeSolver):
             # evaluate error
             if error_norm < 1:
                 step_accepted = True
+
                 if error_norm == 0:
                     factor = MAX_FACTOR
                 else:
@@ -140,11 +228,13 @@ class RungeKutta(OdeSolver):
                 if not self.FSAL:
                     # evaluate ouput point for interpolation and next step
                     self.K[self.n_stages] = self.fun(t + h, y_new)
+
             else:
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
                 NFS[()] += 1
+                self.jflstp += 1                      # for stiffness detection
 
         # store for next step and interpolation
         self.h_previous = h
@@ -155,6 +245,19 @@ class RungeKutta(OdeSolver):
         # output
         self.t = t_new
         self.y = y_new
+
+        # stiffness detection
+        if self.maxfcn:
+            self.okstp += 1
+            self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
+            self._stiff()
+            if self.okstp == 20:
+                # reset after the first 10 steps to:
+                # - get stepsize on scale
+                # - reduce the effect of a possible initial transient
+                self.havg = h
+                self.jflstp = 0
+
         return True, None
 
     def _estimate_error(self, K, h):
@@ -166,27 +269,141 @@ class RungeKutta(OdeSolver):
         return norm(self._estimate_error(K, h) / scale)
 
     def _comp_sol_err(self, y, h):
-        # compute solution and error norm of step
+        """Compute solution and error.
+        The calculation of `scale` differs from scipy: The average instead of
+        the maximum of abs(y) of the current and previous steps is used.
+        """
         y_new = y + h * (self.K[:self.n_stages].T @ self.B)
-        scale = self.atol + self.rtol * np.maximum(np.abs(y), np.abs(y_new))
+        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_new))
+
         if self.FSAL:
-            # do evaluation, only if needed for error estimate
+            # do FSAL evaluation if needed for error estimate
             self.K[self.n_stages, :] = self.fun(self.t + h, y_new)
+
         error_norm = self._estimate_error_norm(self.K, h, scale)
         return y_new, error_norm
 
     def _rk_stage(self, h, i):
-        # compute a single RK stage
+        """compute a single RK stage"""
         dy = h * (self.K[:i, :].T @ self.A[i, :i])
         self.K[i] = self.fun(self.t + self.C[i] * h, self.y + dy)
 
     def _dense_output_impl(self):
+        """return denseOutput, detect if step was extrapolated linearly"""
+
         if self.f is None:
             # output was extrapolated linearly
             return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
+
         # normal output
         Q = self.K.T @ self.P
         return HornerDenseOutput(self.t_old, self.t, self.y_old, Q)
+
+    def _stiff(self):
+        """Stiffness detection.
+
+        Test only if there are many recent step failures, or after many
+        function evaluations have been done.
+
+        Warn the user if the problem is diagnosed as stiff.
+
+        Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
+        """
+
+        # There are lots of failed steps (lotsfl = True) if 10 or more step
+        # failures occurred in the last 40 successful steps.
+        if self.okstp % 40 == 39:
+            lotsfl = self.jflstp >= 10
+            self.jflstp = 0               # reset each time
+        else:
+            lotsfl = False
+
+        # Test for stifness after each self.maxfcn evaluations (toomch = True)
+        many_steps = self.maxfcn//self.n_stages
+        toomch = self.okstp % many_steps == many_steps - 1
+
+        # If either too much work has been done or there are lots of failed
+        # steps, test for stiffness.
+        if toomch or lotsfl:
+
+            # Regenerate weight vector
+            avgy = 0.5 * (np.abs(self.y) + np.abs(self.y_old))
+            tiny = np.finfo(self.y.dtype).tiny
+            wt = np.maximum(avgy, sqrt(tiny))
+            # and error vector, wich is a good initial perturbation vector
+            v0 = self._estimate_error(self.K, self.h_previous)
+
+            # stiffa determines whether the problem is STIFF. In some
+            # circumstances it is UNSURE.  The decision depends on two things:
+            # whether the step size is being restricted on grounds of stability
+            # and whether the integration to t_bound can be completed in no
+            # more than maxfcn function evaluations.
+            stif, rootre = stiffa(
+                self.fun, self.t, self.y, self.h_previous, self.havg,
+                self.t_bound, self.maxfcn, wt, self.f, v0, self.n_stages,
+                self.stbrad, self.tanang)
+
+            # inform the user about stiffness with warning messages
+            # the messages about remaining work have been removed from the
+            # original code.
+
+            if stif is None:
+                # unsure about stiffness
+                if rootre is None:
+                    # no warning is given
+                    logging.info('Stiffness detection did not converge')
+                if not rootre:
+                    # A complex pair of roots has been found near the imaginary
+                    # axis, where the stability boundary of the method is not
+                    # well defined.
+                    # A warning is given only if there are many failed steps.
+                    # This reduces the chance of a false positive diagnosis.
+                    if lotsfl:
+                        warn('Your problem has a complex pair of dominant '
+                             'roots near the imaginary axis.  There are '
+                             'many recently failed steps.  You should '
+                             'probably change to a code intended for '
+                             'oscillatory problems.')
+                    else:
+                        logging.info(
+                            'The problem has a complex pair of dominant roots '
+                            'near the imaginary axis.  There are not many '
+                            'failed steps.')
+                else:
+                    # this should not happen
+                    logging.warning(
+                        'stif=None, rootre=True; this should not happen')
+            elif stif:
+                # the problem is stiff
+                if rootre is None:
+                    # this should not happen
+                    logging.warning(
+                        'stif=True, rootre=None; this should not happen')
+                elif rootre:
+                    warn('Your problem has a real dominant root '
+                         'and is diagnosed as stiff.  You should probably '
+                         'change to a code intended for stiff problems.')
+                else:
+                    warn('Your problem has a complex pair of dominant roots '
+                         'and is diagnosed as stiff.  You should probably '
+                         'change to a code intended for stiff problems.')
+            else:
+                # stif == False
+                if rootre is None:
+                    # no warning is given
+                    logging.info(
+                        'Stiffness detection has diagnosed the problem as '
+                        'non-stiff, without performing power iterations')
+                elif rootre:
+                    # no warning is given
+                    logging.info(
+                        'The problem has a real dominant root '
+                        'and is not stiff')
+                else:
+                    # no warning is given
+                    logging.info(
+                        'The problem has a complex pair of dominant roots '
+                        'and is not stiff')
 
 
 def h_start(df, a, b, y, yprime, morder, rtol, atol):
@@ -237,8 +454,8 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
         An appropriate starting step size to be attempted by the differential
         equation method.
 
-    Reference
-    ---------
+    References
+    ----------
     .. [1] H.A. Watts, "Starting step size for an ODE solver", Journal of
            Computational and Applied Mathematics, Vol. 9, No. 2, 1983,
            pp. 177-191, ISSN 0377-0427.
@@ -413,7 +630,6 @@ def h_start(df, a, b, y, yprime, morder, rtol, atol):
 
     # now set direction of integration
     h = copysign(h, dx)
-
     return h
 
 
@@ -485,3 +701,402 @@ class CubicDenseOutput(HornerDenseOutput):
                       [0.0, -1.0, 1.0]])
         Q = K.T @ P
         super(CubicDenseOutput, self).__init__(t_old, t, y_old, Q)
+
+
+def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
+           stbrad, tanang):
+    """`stiffa` diagnoses stiffness for an explicit Runge-Kutta code.
+    It may be useful for other explicit methods too.
+
+    A nonlinear power method is used to find the dominant eigenvalues of the
+    problem. These are compared to the stability regions of the method to
+    assess if the problem is stiff. Convergence of the power iterations is
+    carefully monitored [1]. This is a Python translation of [2].
+
+    The assessment is not free. Several derivative function evaluations are
+    done. This function should not be called each step, but only if either many
+    step failures have been observed, or a lot of work has been done.
+
+    Support for complex valued problems is added in a quick and dirty way.
+    The original complex vectors are represented by real vectors of twice the
+    length with the real and imaginary parts of the original. If the dominant
+    eigenvalue of the problem is complex, then its complex conjugate is also
+    found. This does not seem to interfere with the stiffness assessment.
+
+    Parameters
+    ----------
+    fun : callable
+        Right-hand side of the system. The calling signature is fun(t, y).
+        Here t is a scalar. The ndarray y has has shape (n,) and fun must
+        return array_like with the same shape (n,).
+    x : float
+        Current value of the independent variable (time); `t` in scipy
+    y : array_like, shape (n,)
+        Current approximate solution.
+    hnow : float
+        Size of the last integration step.
+    havg : float
+        Average step size.
+    xend : float
+        Final value of the independent variable (time): `t_bound` in scipy.
+    maxfcn : int
+        An acceptable number of function evaluations for the integration. The
+        Stiffness test is not done if `xend` is expected to be reached in fewer
+        than `maxfcn` steps; the value False is returned in that case.
+        Prediction uses `havg` and `cost`.
+    wt : array_like, shape (n,)
+        Array with positive, non-zero weights. Values near the magnitude of `y`
+        during the last integration step should work well.
+    fxy : array_like, shape (n,)
+        fxy = fun(x, y). It is an input argument because it's usually available
+        from the integrator.
+    v0 : array_like, shape (n,)
+        A perturbation vector to start the power iteration to find the dominant
+        eigenvalues for stiffness detection. The error vector (difference
+        between two embedded solutions) works well for Runge Kutta methods.
+    cost : int
+        Effective number of function evaluations per step if the integration
+        method.
+    stbrad : float
+        The stability boundary of the method is approximated as a circular arc
+        around the origin. `stbrad` is the radius of this arc.
+    tanang : float
+        The stability boundary of the method is approximated as a circular arc
+        around the origin. This approximation becomes inaccurate near the
+        imaginary axis. `tanang` is the tangent of the angle in the upper left
+        half-plane for which the approximation is still accurate. A eigenvalue
+        z for which
+            -z.imag/z.real = tan(angle(-z)) <= tanang
+        can be assessed. Outside this range, the value None (unsure) is
+        returned. A warning is given in that case, because this information may
+        still be useful to the user.
+
+    Returns
+    -------
+    None or bool
+        The result of the stiffness detection: True if the problem is stiff,
+        False it is not stiff, and None it is unsure.
+
+    References
+    ----------
+    [1] L.F. Shampine, "Diagnosing Stiffness for Runge–Kutta Methods", SIAM
+    Journal on Scientific and Statistical Computing, Vol. 12, No. 2, 1991,
+    pp. 260-272, https://doi.org/10.1137/0912015
+    [2] Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
+    """
+
+    epsneg = np.finfo(y.dtype).epsneg
+    rootre = None       # uncertain
+
+    # If the problem is complex, create double length real vectors of the
+    # original complex vectors
+    if np.issubdtype(y.dtype, np.complexfloating):
+        def expand_complex(v): return np.concatenate((v.real, v.imag))
+        def contract_complex(v): return v[:v.size//2] + v[v.size//2:]*1j
+        def f(x, y): return expand_complex(fun(x, contract_complex(y)))
+        y = expand_complex(y)
+        fxy = expand_complex(fxy)
+        v0 = expand_complex(v0)
+        wt = np.concatenate((wt, wt))
+    else:
+        f = fun
+
+    # If the current step size differs substantially from the average,
+    # the problem is not stiff.
+    if abs(hnow/havg) > 5 or abs(hnow/havg) < 0.2:
+        stif = False
+        return stif, rootre
+
+    # The average step size is used to predict the cost in function evaluations
+    # of finishing the integration to xend.  If this cost is no more than
+    # maxfcn, the problem is declared not stiff: If the step size is being
+    # restricted on grounds of stability, it will stay close to havg.
+    # The prediction will then be good, but the cost is too low to consider the
+    # problem stiff.  If the step size is not close to havg, the problem is not
+    # stiff.  Either way there is no point to testing for a step size
+    # restriction due to stability.
+    xtrfcn = cost * abs((xend - x) / havg)
+    if xtrfcn <= maxfcn:
+        stif = False
+        return stif, rootre
+
+    # There have been many step failures or a lot of work has been done.  Now
+    # we must determine if this is due to the stability characteristics of the
+    # formula.  This is done by calculating the dominant eigenvalues of the
+    # local Jacobian and then testing whether havg corresponds to being on the
+    # boundary of the stability region.
+
+    # The size of y[:] provides scale information needed to approximate
+    # the Jacobian by differences.
+    ynrm = sqrt((y/wt) @ (y/wt))
+    sqrrmc = sqrt(epsneg)
+    scale = ynrm * sqrrmc
+    if scale == 0.0:
+        # Degenerate case.  y[:] is (almost) the zero vector so the scale is
+        # not defined.  The input vector v0[:] is the difference between y[:]
+        # and a lower order approximation to the solution that is within the
+        # error tolerance.  When y[:] vanishes, v0[:] is itself an acceptable
+        # approximate solution, so we take scale from it, if this is possible.
+        ynrm = sqrt((v0/wt) @ (v0/wt))
+        scale = ynrm * sqrrmc
+        if scale == 0.0:
+            stif = None       # uncertain
+            return stif, rootre
+
+    v0v0 = (v0/wt) @ (v0/wt)
+    if v0v0 == 0.0:
+        # Degenerate case.  v0[:] is (almost) the zero vector so cannot
+        # be used to define a direction for an increment to y[:].  Try a
+        # "random" direction.
+        v0[:] = 1.0
+        v0v0 = (v0/wt) @ (v0/wt)
+
+    v0nrm = sqrt(v0v0)
+    v0 /= v0nrm
+    v0v0 = 1.0
+
+    # Use a nonlinear power method to estimate the two dominant eigenvalues.
+    # v0[:] is often very rich in the two associated eigenvectors.  For this
+    # reason the computation is organized with the expectation that a minimal
+    # number of iterations will suffice.  Indeed, it is necessary to recognize
+    # a kind of degeneracy when there is a dominant real eigenvalue.  The
+    # subroutine stiffb does this.  In the first try, ntry = 0, a Rayleigh
+    # quotient for such an eigenvalue is initialized as rold.  After each
+    # iteration, REROOT computes a new Rayleigh quotient and tests whether the
+    # two approximations agree to one tenth of one per cent and the eigenvalue,
+    # eigenvector pair satisfy a stringent test on the residual.  rootre = True
+    # signals that a single dominant real root has been found.
+    maxtry = 8
+    for ntry in range(maxtry):
+
+        v1, v1v1 = stiffd(v0, havg, x, y, f, fxy, wt, scale, v0v0)
+
+        # The quantity sqrt(v1v1/v0v0) is a lower bound for the product of havg
+        # and a Lipschitz constant.  If it should be LARGE, stiffness is not
+        # restricting the step size to the stability region.  The principle is
+        # clear enough, but the real reason for this test is to recognize an
+        # extremely inaccurate computation of v1v1 due to finite precision
+        # arithmetic in certain degenerate circumstances.
+        LARGE = 1.0e10
+        if sqrt(v1v1) > LARGE * sqrt(v0v0):
+            stif = None       # uncertain
+            rootre = None     # uncertain
+            return stif, rootre
+
+        v0v1 = (v0/wt) @ (v1/wt)
+        if ntry == 0:
+            rold = v0v1 / v0v0
+            # This is the first Rayleigh quotient approximating the product of
+            # havg and a dominant real eigenvalue.  If it should be very small,
+            # the problem is not stiff.  It is important to test for this
+            # possibility so as to prevent underflow and degeneracies in the
+            # subsequent iteration.
+            cubrmc = epsneg ** (1/3)
+            if abs(rold) < cubrmc:
+                stif = False
+                rootre = None     # uncertain
+                return stif, rootre
+
+        else:
+            rold, rho, root1, root2, rootre = stiffb(v1v1, v0v1, v0v0, rold)
+            if rootre:
+                break
+
+        v2, v2v2 = stiffd(v1, havg, x, y, f, fxy, wt, scale, v1v1)
+        v0v2 = (v0/wt) @ (v2/wt)
+        v1v2 = (v1/wt) @ (v2/wt)
+        rold, rho, root1, root2, rootre = stiffb(v2v2, v1v2, v1v1, rold)
+        if rootre:
+            break
+
+        # Fit a quadratic in the eigenvalue to the three successive iterates
+        # v0[:], v1[:], v2[:] of the power method to get a first approximation
+        # to a pair of eigenvalues.  A test made earlier in stiffb implies that
+        # the quantity det1 here will not be too small.
+        det1 = v0v0 * v1v1 - v0v1**2
+        alpha1 = (-v0v0 * v1v2 + v0v1 * v0v2)/det1
+        beta1 = (v0v1 * v1v2 - v1v1 * v0v2)/det1
+
+        # Iterate again to get v3, test again for degeneracy, and then fit a
+        # quadratic to v1[:], v2[:], v3[:] to get a second approximation to a
+        # pair of eigenvalues.
+        v3, v3v3 = stiffd(v2, havg, x, y, f, fxy, wt, scale, v2v2)
+        v1v3 = (v1/wt) @ (v3/wt)
+        v2v3 = (v2/wt) @ (v3/wt)
+        rold, rho, root1, root2, rootre = stiffb(v3v3, v2v3, v2v2, rold)
+        if rootre:
+            break
+        det2 = v1v1 * v2v2 - v1v2**2
+        alpha2 = (-v1v1 * v2v3 + v1v2 * v1v3)/det2
+        beta2 = (v1v2 * v2v3 - v2v2 * v1v3)/det2
+
+        # First test the residual of the quadratic fit to see if we might
+        # have determined a pair of eigenvalues.
+        res2 = abs(v3v3 + v2v2*alpha2**2 + v1v1*beta2**2 + 2*v2v3*alpha2 +
+                   2*v1v3*beta2 + 2*v1v2*alpha2*beta2)
+        if res2 <= 1e-6 * v3v3:
+            # Calculate the two approximate pairs of eigenvalues.
+            r1, r2 = stiffc(alpha1, beta1)
+            root1, root2 = stiffc(alpha2, beta2)
+
+            # The test for convergence is done on the larger root of the second
+            # approximation.  It is complicated by the fact that one pair of
+            # roots might be real and the other complex.  First calculate the
+            # spectral radius rho of havg*J as the magnitude of root1.  Then
+            # see if one of the roots r1, r2 is within one per cent of root1.
+            # A subdominant root may be very poorly approximated if its
+            # magnitude is much smaller than rho -- this does not matter in our
+            # use of these eigenvalues.
+            rho = sqrt(root1[0]**2 + root1[1]**2)
+            D1 = (root1[0] - r1[0])**2 + (root1[1] - r1[1])**2
+            D2 = (root1[0] - r2[0])**2 + (root1[1] - r2[1])**2
+            DIST = sqrt(min(D1, D2))
+            if DIST <= 0.001*rho:
+                break
+
+        # Do not have convergence yet.  Because the iterations are cheap, and
+        # because the convergence criterion is stringent, we are willing to try
+        # a few iterations.
+        v3nrm = sqrt(v3v3)
+        v0 = v3/v3nrm
+        v0v0 = 1.0
+
+    else:
+        # Iterations did not converge
+        stif = None       # uncertain
+        rootre = None     # uncertain
+        return stif, rootre
+
+    # Iterations have converged
+
+    # We now have the dominant eigenvalues.  Decide if the average step size is
+    # being restricted on grounds of stability.  Check the real parts of the
+    # eigenvalues.  First see if the dominant eigenvalue is in the left half
+    # plane -- there won't be a stability restriction unless it is.  If there
+    # is another eigenvalue of comparable magnitude with a positive real part,
+    # the problem is not stiff.  If the dominant eigenvalue is too close to the
+    # imaginary axis, we cannot diagnose stiffness.
+
+    rootre = root1[1] == 0.0
+
+    # print(ntry, (root1[0] + root1[1]*1j)/havg,
+    #             (root2[0] + root2[1]*1j)/havg, rootre)
+
+    if root1[0] > 0.0:
+        stif = False
+        return stif, rootre
+
+    rho2 = sqrt(root2[0]**2 + root2[1]**2)
+    if rho2 >= 0.9 * rho and root2[0] > 0.0:
+        stif = False
+        return stif, rootre
+
+    if abs(root1[1]) > abs(root1[0]) * tanang:
+        stif = None       # uncertain
+        return stif, rootre
+
+    # If the average step size corresponds to being well within the stability
+    # region, the step size is not being restricted because of stability.
+    stif = rho >= 0.9 * stbrad
+    return stif, rootre
+
+
+def stiffb(v1v1, v0v1, v0v0, rold):
+    """called from stiffa().
+
+    Decide if the iteration has degenerated because of a strongly dominant
+    real eigenvalue.  Have just computed the latest iterate.  v1v1 is its dot
+    product with itself, v0v1 is the dot product of the previous iterate with
+    the current one, and v0v0 is the dot product of the previous iterate with
+    itself.  rold is a previous Rayleigh quotient approximating a dominant real
+    eigenvalue.  It must be computed directly the first time the subroutine is
+    called.  It is updated each call to stiffb, hence is available for
+    subsequent calls.
+
+    If there is a strongly dominant real eigenvalue, rootre is set True,
+    root1[:] returns the eigenvalue, rho returns the magnitude of the
+    eigenvalue, and root2[:] is set to zero.
+
+    Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
+    """
+    # real and imag parts of roots are returned in a list
+    root1 = [0.0, 0.0]
+    root2 = [0.0, 0.0]
+
+    r = v0v1 / v0v0
+    rho = abs(r)
+    det = v0v0 * v1v1 - v0v1**2
+    res = abs(det / v0v0)
+    rootre = det == 0.0 or (res <= 1e-6 * v1v1 and
+                            abs(r - rold) <= 0.001 * rho)
+    if rootre:
+        root1[0] = r
+    rold = r
+    return rold, rho, root1, root2, rootre
+
+
+def stiffc(alpha, beta):
+    """called from stiffa().
+
+    This subroutine computes the two complex roots r1 and r2 of the
+    quadratic equation x**2 + alpha*x + beta = 0.  The magnitude of r1 is
+    greater than or equal to the magnitude of r2. r1 and r2 are returned as
+    vectors of two components with the first being the real part of the complex
+    number and the second being the imaginary part.
+
+    Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
+    """
+    # real and imag parts of roots are returned in a list
+    r1 = [0.0, 0.0]
+    r2 = [0.0, 0.0]
+
+    temp = alpha / 2
+    disc = temp**2 - beta
+    if disc == 0.0:
+        # Double root.
+        r1[0] = r2[0] = -temp
+        return r1, r2
+
+    sqdisc = sqrt(abs(disc))
+    if disc < 0.0:
+        # Complex conjugate roots.
+        r1[0] = r2[0] = -temp
+        r1[1] = sqdisc
+        r2[1] = -sqdisc
+    else:
+        # Real pair of roots.  Calculate the bigger one in r1[0].
+        if temp > 0.0:
+            r1[0] = -temp - sqdisc
+        else:
+            r1[0] = -temp + sqdisc
+        r2[0] = beta / r1[0]
+    return r1, r2
+
+
+def stiffd(v, havg, x, y, f, fxy, wt, scale, vdotv):
+    """called from stiffa().
+
+    For an input vector v[:], this subroutine computes a vector z[:] that
+    approximates the product havg*J*V where havg is an input scalar and J is
+    the Jacobian matrix of a function f evaluated at the input arguments
+    (x, y[:]).  This function is defined by a subroutine of the form
+    f[:] = f(t, u) that when given t and u[:], returns the value of the
+    function in f[:].  The input vector fxy[:] is defined by f(x, y).  Scaling
+    is a delicate matter.  A weighted Euclidean norm is used with the
+    (positive) weights provided in wt[:].  The input scalar scale is the square
+    root of the unit roundoff times the norm of y[:].  The square of the norm
+    of the input vector v[:] is input as vdotv.  The routine outputs the square
+    of the norm of the output vector z[:] as zdotz.
+
+    Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
+    """
+    # scale v[:] so that it can be used as an increment to y[:]
+    # for an accurate difference approximation to the Jacobian.
+    temp1 = scale/sqrt(vdotv)
+    z = f(x, y + temp1 * v)                                          # evaluate
+
+    # Form the difference approximation.  At the same time undo
+    # the scaling of v[:] and introduce the factor of havg.
+    z = havg/temp1 * (z - fxy)
+    zdotz = (z/wt) @ (z/wt)
+    return z, zdotz

@@ -48,6 +48,15 @@ class Ts45(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -86,6 +95,8 @@ class Ts45(RungeKutta):
     order = 5
     error_estimator_order = 4
     n_stages = 6        # effective nr
+    tanang = 3.0
+    stbrad = 3.5
 
     # time step fractions
     C = np.array([0, 0.161, 0.327, 0.9, 0.9800255409045097, 1])
@@ -102,7 +113,7 @@ class Ts45(RungeKutta):
             -0.02826905039406838, 0.0]])
     A[:, 0] = C - A.sum(axis=1)
 
-    # coefficients for propagating method
+    # coefficients for the propagating method
     B = np.array([
         0.09646076681806523, 0.01, 0.4798896504144996, 1.379008574103742,
         -3.290069515436081, 2.324710524099774])
@@ -122,41 +133,3 @@ class Ts45(RungeKutta):
         [0, 37.50931341651104, -88.1789048947664, 47.37952196281928],
         [0, -27.896526289197286, 65.09189467479368, -34.87065786149661],
         [0, 1.5, -4.0, 2.5]])
-
-
-if __name__ == '__main__':
-    from numpy.polynomial.polynomial import Polynomial
-
-    # conversion of coefficient in P from the notation in the paper to the
-    # array given above
-
-    # formulation in [1]_,
-    p1 = (Polynomial((0, -1.0530884977290216)) *
-          Polynomial((-1.3299890189751412, 1)) *
-          Polynomial((0.7139816917074209, -1.4364028541716351, 1)))
-    p2 = (Polynomial((0, 0, 0.1017)) *
-          Polynomial((1.2949852507374631, -2.1966568338249754, 1)))
-    p3 = (Polynomial((0, 0, 2.490627285651252793)) *
-          Polynomial((1.57803468208092486, -2.38535645472061657, 1)))
-    p4 = (Polynomial((0, 0, -16.54810288924490272)) *
-          Polynomial((-1.21712927295533244, 1)) *
-          Polynomial((-0.61620406037800089, 1)))
-    p5 = (Polynomial((-1.203071208372362603, 1)) *
-          Polynomial((-0.658047292653547382, 1)) *
-          Polynomial((0, 0, 47.37952196281928122)))
-    p6 = (Polynomial((-1.2, 1)) * Polynomial((-0.666666666666666667, 1)) *
-          Polynomial((0, 0, -34.87065786149660974)))
-    p7 = Polynomial((-0.6, 1)) * Polynomial((-1, 1)) * Polynomial((0, 0, 2.5))
-
-    # convert to single polynomial
-    order = 5           # of polynomial
-    n_stages = 6        # effective nr
-    P = np.zeros((n_stages+1, order-1))
-    for i, p in enumerate((p1, p2, p3, p4, p5, p6, p7)):
-        P[i, :] = p.coef[1:]
-
-    np.set_printoptions(floatmode='unique')
-    # print(P)      # P[0,0] needs manual correction
-
-    P[0, 0] = 1
-    print(P)

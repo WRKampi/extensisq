@@ -45,6 +45,15 @@ class Pri6(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiple
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -83,6 +92,8 @@ class Pri6(RungeKutta):
     order = 7
     error_estimator_order = 5
     n_stages = 10
+    tanang = 7.5
+    stbrad = 4.1
 
     C = np.array([0, 1/6, 1/4, 1/2, 1/2, 3/16, 3/16, 3/5, 6/7, 1])
 
@@ -172,6 +183,15 @@ class Pri7(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -210,6 +230,8 @@ class Pri7(RungeKutta):
     order = 8
     error_estimator_order = 6
     n_stages = 13
+    tanang = 6.0
+    stbrad = 4.5
 
     A = np.array([
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -282,7 +304,8 @@ class Pri7(RungeKutta):
          4.52499466462306516458275969143E-1, 0],
     ])
 
-    C = np.array(A.sum(axis=1))
+    C = np.array([0, 7/75, 7/50, 7/25, 7/25, 19/40, 19/40, 7/50, 2/25, 8/15,
+                  4/5, 22/25, 1])
 
     B = np.array([
         1.01794429109647960346134352579E-2, 0, 0, 0,
@@ -416,6 +439,15 @@ class Pri8(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
     Attributes
     ----------
@@ -454,6 +486,8 @@ class Pri8(RungeKutta):
     order = 9
     error_estimator_order = 7
     n_stages = 17
+    tanang = 7.5
+    stbrad = 4.6
 
     A = np.array([
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -609,7 +643,8 @@ class Pri8(RungeKutta):
             0],
     ])
 
-    C = np.array(A.sum(axis=1))
+    C = np.array([0, 14/135, 7/45, 14/45, 14/45, 29/45, 29/45, 7/45, 3/4, 1/50,
+                  13/15, 0.36, 2/21,  22/45, 7/11, 14/15, 1])
 
     B = np.array([
         3.07799270475412360737919532866E-2,
