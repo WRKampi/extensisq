@@ -2,10 +2,9 @@ import numpy as np
 from warnings import warn
 from math import copysign, sqrt
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from extensisq.common import h_start, LinearDenseOutput, NFS
+from extensisq.common import h_start, LinearDenseOutput, validate_tol, NFS
 from scipy.integrate._ivp.common import (
-    validate_max_step, validate_tol, norm, warn_extraneous,
-    validate_first_step)
+    validate_max_step, norm, warn_extraneous, validate_first_step)
 
 
 class SWAG(OdeSolver):
@@ -106,7 +105,7 @@ class SWAG(OdeSolver):
         super(SWAG, self).__init__(
             fun, t0, y0, t_bound, vectorized, support_complex=True)
         self.max_step = validate_max_step(max_step)
-        self.rtol, self.atol = validate_tol(rtol, atol, self.n)
+        self.rtol, self.atol = validate_tol(rtol, atol, self.y)
 
         # starting step size
         self.yp = self.fun(self.t, self.y)                 # initial evaluation
