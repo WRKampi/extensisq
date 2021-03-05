@@ -14,7 +14,7 @@ Currently, several explicit methods (for non-stiff problems) are provided.
 One multistep method is implemented:
 * `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
 
-Four explicit Runge Kutta methods of order 5 are implemented:
+Three explicit Runge Kutta methods of order 5 are implemented:
 * `BS5`: efficient fifth order method by Bogacki and Shampine [1]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
 * `CK5`: fifth order method with the coefficients from [2], for general use.
 * `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
