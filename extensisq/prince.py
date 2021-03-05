@@ -1,8 +1,9 @@
 import numpy as np
+from warnings import warn
 from extensisq.common import RungeKutta
 
 
-class Pri6(RungeKutta):
+class Pr7(RungeKutta):
     """Explicit Runge-Kutta method by Prince [1]_, developed around a
     continuous method of order 6. Discrete propagation is of order 7 and the
     solution for error estimation and stepsize selection is of order 5.
@@ -54,32 +55,6 @@ class Pri6(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
 
     References
     ----------
@@ -140,7 +115,7 @@ class Pri6(RungeKutta):
     ])
 
 
-class Pri7(RungeKutta):
+class Pr8(RungeKutta):
     """Explicit Runge-Kutta method by Prince [1]_, developed around a
     continuous method of order 7. Discrete propagation is of order 8 and the
     solution for error estimation and stepsize selection is of order 6.
@@ -192,32 +167,6 @@ class Pri7(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
 
     References
     ----------
@@ -396,7 +345,7 @@ class Pri7(RungeKutta):
     ])
 
 
-class Pri8(RungeKutta):
+class Pr9(RungeKutta):
     """Explicit Runge-Kutta method by Prince [1]_, developed around a
     continuous method of order 8. Discrete propagation is of order 9 and the
     solution for error estimation and stepsize selection is of order 7.
@@ -448,32 +397,6 @@ class Pri8(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
 
     References
     ----------
@@ -780,3 +703,22 @@ class Pri8(RungeKutta):
             -7.86288962134219494870125843802E1,
             2.70849507236009171823909477318E1],
     ])
+
+
+# old class names
+class Pri6(Pr7):
+    def __init__(self, *args, **kwargs):
+        warn("This method will be replaced by 'Pr7'.", FutureWarning)
+        super(Pri6, self).__init__(*args, **kwargs)
+
+
+class Pri7(Pr8):
+    def __init__(self, *args, **kwargs):
+        warn("This method will be replaced by 'Pr8'.", FutureWarning)
+        super(Pri7, self).__init__(*args, **kwargs)
+
+
+class Pri8(Pr9):
+    def __init__(self, *args, **kwargs):
+        warn("This method will be replaced by 'Pr9'.", FutureWarning)
+        super(Pri8, self).__init__(*args, **kwargs)

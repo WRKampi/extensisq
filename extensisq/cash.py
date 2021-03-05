@@ -5,25 +5,14 @@ from extensisq.common import (
     RungeKutta, HornerDenseOutput, CubicDenseOutput, LinearDenseOutput, NFS)
 
 
-class CK45(RungeKutta):
-    """Cash Karp variable order (5, 3, 2) Runge Kutta method with error
-    estimators of order (4, 2, 1). This method is created to efficiently solve
-    non-smooth problems [1]_. Interpolants for dense output have been added.
+class CK5(RungeKutta):
+    """A 5th order method with 4th order error estimator that uses the
+    coefficients of Cash and Karp [1]_.
 
-    The method prefers order 5. Whether this high order can be successfuly
-    reached in the current step is predicted multiple times between the
-    evaluations of the derivative function. After the first failed prediction,
-    propagation with fallback solutions of reduced order and step size is
-    assessed. These fallback solutions do not need extra derivative
-    evaluations.
-
-    Step size is expected to be irregular in this method. This can interfere
-    with stiffness detection, which is therefore disabled.
+    This is not the variable order method described [1]_. That method is
+    available as `CKdisc`.
 
     Can be applied in the complex domain.
-
-    A fixed order (4,5) method with the Cash Karp parameters is available as
-    CK45_o.
 
     Parameters
     ----------
@@ -61,32 +50,113 @@ class CK45(RungeKutta):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
 
-    Attributes
+    References
     ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
+    .. [1] J. R. Cash, A. H. Karp, "A Variable Order Runge-Kutta Method for
+           Initial Value Problems with Rapidly Varying Right-Hand Sides",
+           ACM Trans. Math. Softw., Vol. 16, No. 3, 1990, pp. 201-222, ISSN
+           0098-3500. https://doi.org/10.1145/79505.79507
+    """
+
+    n_stages = 6
+    order = 5
+    error_estimator_order = 4
+    tanang = 2.4
+    stbrad = 3.7
+
+    A = np.array([
+        [0, 0, 0, 0, 0, 0],
+        [1/5, 0, 0, 0, 0, 0],
+        [3/40, 9/40, 0, 0, 0, 0],
+        [3/10, -9/10, 6/5, 0, 0, 0],
+        [-11/54, 5/2, -70/27, 35/27, 0, 0],
+        [1631/55296, 175/512, 575/13824, 44275/110592, 253/4096, 0]])
+
+    B = np.array([37/378, 0, 250/621, 125/594, 0, 512/1771])
+
+    C = np.array([0, 1/5, 3/10, 3/5, 1, 7/8])
+
+    E = np.array(
+        [277/64512, 0, -6925/370944, 6925/202752, 277/14336, -277/7084, 0])
+
+    # fourth order, maximum ||T5|| over step is 1.52e-3
+    P = np.array([
+        [1, -10405/3843, 32357/11529, -855/854],
+        [0, 0, 0, 0],
+        [0, 308500/88389, -1424000/265167, 67250/29463],
+        [0, 5875/24156, 12875/36234, -3125/8052],
+        [0, 235/1708, -235/854, 235/1708],
+        [0, -287744/108031, 700416/108031, -381440/108031],
+        [0, 3/2, -4, 5/2]])
+
+
+class CKdisc(RungeKutta):
+    """Cash Karp variable order (5, 3, 2) Runge Kutta method with error
+    estimators of order (4, 2, 1). This method is created to efficiently solve
+    non-smooth problems [1]_; problems with discontinuous derivatives.
+    Interpolants for dense output have been added.
+
+    The method prefers order 5. Whether this high order can be successfully
+    reached in the current step is predicted multiple times between the
+    evaluations of the derivative function. After the first failed prediction,
+    propagation with fallback solutions of reduced order and step size is
+    assessed. These fallback solutions do not need extra derivative
+    evaluations.
+
+    Step size is expected to be irregular in this method. This can interfere
+    with stiffness detection, which is therefore disabled.
+
+    Can be applied in the complex domain.
+
+    A fixed fifth order method with the Cash Karp parameters is available as
+    CK5.
+
+    Parameters
+    ----------
+    fun : callable
+        Right-hand side of the system. The calling signature is ``fun(t, y)``.
+        Here ``t`` is a scalar, and there are two options for the ndarray
+        ``y``: It can either have shape (n,); then ``fun`` must return
+        array_like with shape (n,). Alternatively it can have shape (n, k);
+        then ``fun`` must return an array_like with shape (n, k), i.e., each
+        column corresponds to a single column in ``y``. The choice between the
+        two options is determined by `vectorized` argument (see below).
+    t0 : float
+        Initial time.
+    y0 : array_like, shape (n,)
+        Initial state.
     t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
+        Boundary time - the integration won't continue beyond it. It also
+        determines the direction of the integration.
+    first_step : float or None, optional
+        Initial step size. Default is ``None`` which means that the algorithm
+        should choose.
+    max_step : float, optional
+        Maximum allowed step size. Default is np.inf, i.e., the step size is
+        not bounded and determined solely by the solver.
+    rtol, atol : float and array_like, optional
+        Relative and absolute tolerances. The solver keeps the local error
+        estimates less than ``atol + rtol * abs(y)``. Here `rtol` controls a
+        relative accuracy (number of correct digits). But if a component of `y`
+        is approximately below `atol`, the error only needs to fall within
+        the same `atol` threshold, and the number of correct digits is not
+        guaranteed. If components of y have different scales, it might be
+        beneficial to set different `atol` values for different components by
+        passing array_like with shape (n,) for `atol`. Default values are
+        1e-3 for `rtol` and 1e-6 for `atol`.
+    vectorized : bool, optional
+        Whether `fun` is implemented in a vectorized fashion. A vectorized
+        implementation offers no advantages for this solver. Default is False.
 
     References
     ----------
@@ -161,8 +231,8 @@ class CK45(RungeKutta):
         [0, 3/2, -4, 5/2]])
 
     def __init__(self, fun, t0, y0, t_bound, **extraneous):
-        super(CK45, self).__init__(fun, t0, y0, t_bound, nfev_stiff_detect=0,
-                                   **extraneous)
+        super(CKdisc, self).__init__(
+            fun, t0, y0, t_bound, nfev_stiff_detect=0, **extraneous)
         # adaptive weighing factors:
         self.twiddle = [1.5, 1.1]                             # starting values
         self.quit = [100., 100.]                              # starting values
@@ -363,99 +433,14 @@ class CK45(RungeKutta):
                                 self.K[0, :], self.K[-1, :])
 
 
-class CK45_o(RungeKutta):
-    """A 5th order method with 4th order error estimator that uses the
-    same coefficients as CK45. In this variant the order is fixed (suffix _o
-    for order).
+# old class names
+class CK45_o(CK5):
+    def __init__(self, *args, **kwargs):
+        warn("This method will be replaced by 'CK5'.", FutureWarning)
+        super(CK45_o, self).__init__(*args, **kwargs)
 
-    Parameters
-    ----------
-    fun : callable
-        Right-hand side of the system. The calling signature is ``fun(t, y)``.
-        Here ``t`` is a scalar, and there are two options for the ndarray
-        ``y``: It can either have shape (n,); then ``fun`` must return
-        array_like with shape (n,). Alternatively it can have shape (n, k);
-        then ``fun`` must return an array_like with shape (n, k), i.e., each
-        column corresponds to a single column in ``y``. The choice between the
-        two options is determined by `vectorized` argument (see below).
-    t0 : float
-        Initial time.
-    y0 : array_like, shape (n,)
-        Initial state.
-    t_bound : float
-        Boundary time - the integration won't continue beyond it. It also
-        determines the direction of the integration.
-    first_step : float or None, optional
-        Initial step size. Default is ``None`` which means that the algorithm
-        should choose.
-    max_step : float, optional
-        Maximum allowed step size. Default is np.inf, i.e., the step size is
-        not bounded and determined solely by the solver.
-    rtol, atol : float and array_like, optional
-        Relative and absolute tolerances. The solver keeps the local error
-        estimates less than ``atol + rtol * abs(y)``. Here `rtol` controls a
-        relative accuracy (number of correct digits). But if a component of `y`
-        is approximately below `atol`, the error only needs to fall within
-        the same `atol` threshold, and the number of correct digits is not
-        guaranteed. If components of y have different scales, it might be
-        beneficial to set different `atol` values for different components by
-        passing array_like with shape (n,) for `atol`. Default values are
-        1e-3 for `rtol` and 1e-6 for `atol`.
-    vectorized : bool, optional
-        Whether `fun` is implemented in a vectorized fashion. A vectorized
-        implementation offers no advantages for this solver. Default is False.
-    nfev_stiff_detect : int, optional
-        Number of function evaluations for stiffness detection. This number has
-        multiple purposes. If it is set to 0, then stiffness detection is
-        disabled. For other (positive) values it is used to represent a
-        'considerable' number of function evaluations (nfev). A stiffness test
-        is done if many steps fail and each time nfev exceeds integer multiples
-        of `nfev_stiff_detect`. For the assessment itself, the problem is
-        assessed as non-stiff if the predicted nfev to complete the integration
-        is lower than `nfev_stiff_detect`. The default value is 5000.
 
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
-
-    References
-    ----------
-    .. [1] J. R. Cash, A. H. Karp, "A Variable Order Runge-Kutta Method for
-           Initial Value Problems with Rapidly Varying Right-Hand Sides",
-           ACM Trans. Math. Softw., Vol. 16, No. 3, 1990, pp. 201-222, ISSN
-           0098-3500. https://doi.org/10.1145/79505.79507
-    """
-
-    n_stages = CK45.n_stages
-    order = CK45.order
-    error_estimator_order = CK45.error_estimator_order
-    tanang = 2.4
-    stbrad = 3.7
-
-    A = CK45.A
-    B = CK45.B
-    C = CK45.C
-    P = CK45.P
-    E = CK45.E
+class CK45(CKdisc):
+    def __init__(self, *args, **kwargs):
+        warn("This method will be replaced by 'CKdisc'.", FutureWarning)
+        super(CK45, self).__init__(*args, **kwargs)

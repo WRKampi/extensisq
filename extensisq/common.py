@@ -1,11 +1,11 @@
 import numpy as np
 from math import sqrt, copysign
 from warnings import warn
+import logging
 from scipy.integrate._ivp.common import (
     validate_max_step, norm, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
 from scipy.integrate._ivp.rk import SAFETY, MIN_FACTOR, MAX_FACTOR
-import logging
 
 
 NFS = np.array(0)                                         # failed step counter
@@ -40,7 +40,7 @@ def validate_tol(rtol, atol, y):
 
 
 class RungeKutta(OdeSolver):
-    """Modified RungeKutta class for conventional and FSAL explicit methods.
+    """Base class for explicit runge kutta methods.
 
     This implementation mainly follows the scipy implementation. The current
     differences are:
@@ -55,6 +55,7 @@ class RungeKutta(OdeSolver):
         - linear extrapolation if the last step is too small despite it.
       - the min_step accounts for the distance between C-values
       - the scale (weight) is smoothed differently
+      - a different tolerance validation is used.
       - stiffness detection is added, can be turned off
     """
 
@@ -120,7 +121,7 @@ class RungeKutta(OdeSolver):
         if not (isinstance(nfev_stiff_detect, int) and nfev_stiff_detect >= 0):
             raise ValueError(
                 "`nfev_stiff_detect` must be a non-negative integer.")
-        self.maxfcn = nfev_stiff_detect         # test each maxfcn evaluations
+        self.nfev_stiff_detect = nfev_stiff_detect
         if nfev_stiff_detect:
             self.okstp = 0                      # successful step counter
             self.jflstp = 0                     # failed step counter, last 40
@@ -247,7 +248,7 @@ class RungeKutta(OdeSolver):
         self.y = y_new
 
         # stiffness detection
-        if self.maxfcn:
+        if self.nfev_stiff_detect:
             self.okstp += 1
             self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
             self._stiff()
@@ -318,8 +319,9 @@ class RungeKutta(OdeSolver):
         else:
             lotsfl = False
 
-        # Test for stifness after each self.maxfcn evaluations (toomch = True)
-        many_steps = self.maxfcn//self.n_stages
+        # Test for stifness after each nfev_stiff_detect evaluations
+        # then toomch = True
+        many_steps = self.nfev_stiff_detect//self.n_stages
         toomch = self.okstp % many_steps == many_steps - 1
 
         # If either too much work has been done or there are lots of failed
@@ -333,15 +335,15 @@ class RungeKutta(OdeSolver):
             # and error vector, wich is a good initial perturbation vector
             v0 = self._estimate_error(self.K, self.h_previous)
 
-            # stiffa determines whether the problem is STIFF. In some
+            # stiff_a determines whether the problem is stiff. In some
             # circumstances it is UNSURE.  The decision depends on two things:
             # whether the step size is being restricted on grounds of stability
             # and whether the integration to t_bound can be completed in no
-            # more than maxfcn function evaluations.
-            stif, rootre = stiffa(
+            # more than nfev_stiff_detect function evaluations.
+            stif, rootre = stiff_a(
                 self.fun, self.t, self.y, self.h_previous, self.havg,
-                self.t_bound, self.maxfcn, wt, self.f, v0, self.n_stages,
-                self.stbrad, self.tanang)
+                self.t_bound, self.nfev_stiff_detect, wt, self.f, v0,
+                self.n_stages, self.stbrad, self.tanang)
 
             # inform the user about stiffness with warning messages
             # the messages about remaining work have been removed from the
@@ -703,9 +705,9 @@ class CubicDenseOutput(HornerDenseOutput):
         super(CubicDenseOutput, self).__init__(t_old, t, y_old, Q)
 
 
-def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
-           stbrad, tanang):
-    """`stiffa` diagnoses stiffness for an explicit Runge-Kutta code.
+def stiff_a(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
+            stbrad, tanang):
+    """`stiff_a` diagnoses stiffness for an explicit Runge-Kutta code.
     It may be useful for other explicit methods too.
 
     A nonlinear power method is used to find the dominant eigenvalues of the
@@ -773,9 +775,12 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
 
     Returns
     -------
-    None or bool
-        The result of the stiffness detection: True if the problem is stiff,
-        False it is not stiff, and None it is unsure.
+    stif : None or bool
+        Result of the stiffness detection: True if the problem is stiff,
+        False if it is not stiff, and None if unsure.
+    rootre : None or bool
+        Complex type of root found in stiffness detection: True if the root is
+        real, False if it is complex, and None if unknown.
 
     References
     ----------
@@ -860,7 +865,7 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
     # reason the computation is organized with the expectation that a minimal
     # number of iterations will suffice.  Indeed, it is necessary to recognize
     # a kind of degeneracy when there is a dominant real eigenvalue.  The
-    # subroutine stiffb does this.  In the first try, ntry = 0, a Rayleigh
+    # subroutine stiff_b does this.  In the first try, ntry = 0, a Rayleigh
     # quotient for such an eigenvalue is initialized as rold.  After each
     # iteration, REROOT computes a new Rayleigh quotient and tests whether the
     # two approximations agree to one tenth of one per cent and the eigenvalue,
@@ -869,7 +874,7 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
     maxtry = 8
     for ntry in range(maxtry):
 
-        v1, v1v1 = stiffd(v0, havg, x, y, f, fxy, wt, scale, v0v0)
+        v1, v1v1 = stiff_d(v0, havg, x, y, f, fxy, wt, scale, v0v0)
 
         # The quantity sqrt(v1v1/v0v0) is a lower bound for the product of havg
         # and a Lipschitz constant.  If it should be LARGE, stiffness is not
@@ -898,21 +903,21 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
                 return stif, rootre
 
         else:
-            rold, rho, root1, root2, rootre = stiffb(v1v1, v0v1, v0v0, rold)
+            rold, rho, root1, root2, rootre = stiff_b(v1v1, v0v1, v0v0, rold)
             if rootre:
                 break
 
-        v2, v2v2 = stiffd(v1, havg, x, y, f, fxy, wt, scale, v1v1)
+        v2, v2v2 = stiff_d(v1, havg, x, y, f, fxy, wt, scale, v1v1)
         v0v2 = (v0/wt) @ (v2/wt)
         v1v2 = (v1/wt) @ (v2/wt)
-        rold, rho, root1, root2, rootre = stiffb(v2v2, v1v2, v1v1, rold)
+        rold, rho, root1, root2, rootre = stiff_b(v2v2, v1v2, v1v1, rold)
         if rootre:
             break
 
         # Fit a quadratic in the eigenvalue to the three successive iterates
         # v0[:], v1[:], v2[:] of the power method to get a first approximation
-        # to a pair of eigenvalues.  A test made earlier in stiffb implies that
-        # the quantity det1 here will not be too small.
+        # to a pair of eigenvalues.  A test made earlier in stiff_b implies
+        # that the quantity det1 here will not be too small.
         det1 = v0v0 * v1v1 - v0v1**2
         alpha1 = (-v0v0 * v1v2 + v0v1 * v0v2)/det1
         beta1 = (v0v1 * v1v2 - v1v1 * v0v2)/det1
@@ -920,10 +925,10 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
         # Iterate again to get v3, test again for degeneracy, and then fit a
         # quadratic to v1[:], v2[:], v3[:] to get a second approximation to a
         # pair of eigenvalues.
-        v3, v3v3 = stiffd(v2, havg, x, y, f, fxy, wt, scale, v2v2)
+        v3, v3v3 = stiff_d(v2, havg, x, y, f, fxy, wt, scale, v2v2)
         v1v3 = (v1/wt) @ (v3/wt)
         v2v3 = (v2/wt) @ (v3/wt)
-        rold, rho, root1, root2, rootre = stiffb(v3v3, v2v3, v2v2, rold)
+        rold, rho, root1, root2, rootre = stiff_b(v3v3, v2v3, v2v2, rold)
         if rootre:
             break
         det2 = v1v1 * v2v2 - v1v2**2
@@ -936,8 +941,8 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
                    2*v1v3*beta2 + 2*v1v2*alpha2*beta2)
         if res2 <= 1e-6 * v3v3:
             # Calculate the two approximate pairs of eigenvalues.
-            r1, r2 = stiffc(alpha1, beta1)
-            root1, root2 = stiffc(alpha2, beta2)
+            r1, r2 = stiff_c(alpha1, beta1)
+            root1, root2 = stiff_c(alpha2, beta2)
 
             # The test for convergence is done on the larger root of the second
             # approximation.  It is complicated by the fact that one pair of
@@ -1001,8 +1006,8 @@ def stiffa(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
     return stif, rootre
 
 
-def stiffb(v1v1, v0v1, v0v0, rold):
-    """called from stiffa().
+def stiff_b(v1v1, v0v1, v0v0, rold):
+    """called from stiff_a().
 
     Decide if the iteration has degenerated because of a strongly dominant
     real eigenvalue.  Have just computed the latest iterate.  v1v1 is its dot
@@ -1010,7 +1015,7 @@ def stiffb(v1v1, v0v1, v0v0, rold):
     the current one, and v0v0 is the dot product of the previous iterate with
     itself.  rold is a previous Rayleigh quotient approximating a dominant real
     eigenvalue.  It must be computed directly the first time the subroutine is
-    called.  It is updated each call to stiffb, hence is available for
+    called.  It is updated each call to stiff_b, hence is available for
     subsequent calls.
 
     If there is a strongly dominant real eigenvalue, rootre is set True,
@@ -1035,8 +1040,8 @@ def stiffb(v1v1, v0v1, v0v0, rold):
     return rold, rho, root1, root2, rootre
 
 
-def stiffc(alpha, beta):
-    """called from stiffa().
+def stiff_c(alpha, beta):
+    """called from stiff_a().
 
     This subroutine computes the two complex roots r1 and r2 of the
     quadratic equation x**2 + alpha*x + beta = 0.  The magnitude of r1 is
@@ -1073,8 +1078,8 @@ def stiffc(alpha, beta):
     return r1, r2
 
 
-def stiffd(v, havg, x, y, f, fxy, wt, scale, vdotv):
-    """called from stiffa().
+def stiff_d(v, havg, x, y, f, fxy, wt, scale, vdotv):
+    """called from stiff_a().
 
     For an input vector v[:], this subroutine computes a vector z[:] that
     approximates the product havg*J*V where havg is an input scalar and J is

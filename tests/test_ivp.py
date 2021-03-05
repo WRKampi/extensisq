@@ -11,10 +11,10 @@ from scipy.integrate import solve_ivp
 # from scipy.integrate import OdeSolution
 # from scipy.integrate._ivp.common import num_jac
 from scipy.sparse import coo_matrix, csc_matrix
-from extensisq import BS45, BS45_i, Ts45, CK45, CK45_o, Pri6, Pri7, Pri8, SWAG
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG
 
 
-METHODS = [BS45, BS45_i, Ts45, CK45, CK45_o, Pri6, Pri7, Pri8, SWAG]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG]
 
 
 def fun_zero(t, y):
@@ -174,7 +174,7 @@ def test_integration(method):
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method in ['DOP853', Pri7, Pri8]:
+        if method in ['DOP853', Pr8, Pr9]:
             # DOP853 spends more functions evaluation because it doesn't
             # have enough time to develop big enough step size.
             assert_(res.nfev < 55)  # increased
@@ -214,7 +214,7 @@ def test_integration(method):
             # print(res.sol(res.t) - res.y)
             # increased tol:
             assert_allclose(res.sol(res.t), res.y,
-                            rtol=1e-12, atol=1e-13)         # relaxed tol
+                            rtol=1e-11, atol=1e-12)         # relaxed tol
 
 
 @pytest.mark.parametrize('method', METHODS)
@@ -238,7 +238,7 @@ def test_integration_complex(method):
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method in ['DOP853', Pri7, Pri8]:
+        if method in ['DOP853', SWAG, Pr8, Pr9]:
             print(method, res.nfev)
             assert res.nfev < 40      # increased
         else:
@@ -753,6 +753,7 @@ def test_empty(method):
 def test_classes(cls):
     y0 = [1 / 3, 2 / 9]
     solver = cls(fun_rational, 5, y0, np.inf)
+    #                    fun, t0, y0, t_bound
     assert_equal(solver.n, 2)
     assert_equal(solver.status, 'running')
     assert_equal(solver.t_bound, np.inf)

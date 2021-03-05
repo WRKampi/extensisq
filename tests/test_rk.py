@@ -2,22 +2,18 @@
 import pytest
 from numpy.testing import assert_allclose, assert_
 import numpy as np
-from extensisq import BS45, BS45_i, Ts45, CK45, CK45_o, Pri6, Pri7, Pri8
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9
 
 
-METHODS = [BS45, BS45_i, Ts45, CK45, CK45_o, Pri6, Pri7, Pri8]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9]
 
 
 @pytest.mark.parametrize("solver", METHODS)
 def test_coefficient_properties(solver):
     assert_allclose(np.sum(solver.B), 1, rtol=1e-15)
     assert_allclose(np.sum(solver.E), 0, atol=1e-15)                    # added
-    assert_allclose(np.sum(solver.A, axis=1), solver.C, rtol=1e-14)
+    assert_allclose(np.sum(solver.A, axis=1), solver.C, rtol=1e-13)
     # added tests for runge kutta interpolants. (C1 continuity)
-    if solver is BS45:
-        # BS45 uses extra stages I don't know how to test for C1 continuity
-        # in that case.
-        return
     Ps = np.sum(solver.P, axis=0)
     Ps[0] -= 1
     assert_allclose(Ps, 0,  atol=1e-12)         # C1 start

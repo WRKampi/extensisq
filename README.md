@@ -11,23 +11,28 @@ This package extends scipy.integrate with various methods (OdeSolver classes) fo
 
 Currently, several explicit methods (for non-stiff problems) are provided.
 
-Three explicit Runge Kutta methods of order 5 and two variants are implemented:
-* `BS45`: efficient solver with an accurate high order interpolant by Bogacki and Shampine [1]. The variant `BS45_i` has a free, lower order interpolant.
-* `CK45`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2]. The variant `CK45_o` is a fixed (fifth) order method with the same coefficients. 
-* `Ts45`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
-
-
-Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
-* `Pri6`: a seventh order discrete method with fifth order error estimate, derived from a sixth order continuous method.
-* `Pri7`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
-* `Pri8`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
-
-The numbers in the names refer to the continuous methods. These higher order methods, unlike conventional discrete methods, do not require additional function evaluations for dense output.
-
 One multistep method is implemented:
 * `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
 
-The initial step size estimator [7] is also used for all other exensisq methods.
+Four explicit Runge Kutta methods of order 5 are implemented:
+* `BS5`: efficient fifth order method by Bogacki and Shampine [1]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
+* `CK5`: fifth order method with the coefficients from [2], for general use.
+* `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
+
+Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
+* `Pr7`: a seventh order discrete method with fifth order error estimate, derived from a sixth order continuous method.
+* `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
+* `Pr9`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
+
+One method for a specific type of problem is available:
+* `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
+
+The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
+
+## Other features
+The initial step size, when not supplied by you, is estimated using the method of Watts [7]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
+
+Most of extensisq Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8] to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
 ## Installation
 
@@ -43,15 +48,15 @@ Or, if you'd rather use [conda](https://anaconda.org/conda-forge/extensisq):
 Borrowed from the the scipy documentation:
 
     from scipy.integrate import solve_ivp
-    from extensisq import BS45_i
+    from extensisq import BS5
     
     def exponential_decay(t, y): return -0.5 * y
-    sol = solve_ivp(exponential_decay, [0, 10], [2, 4, 8], method=BS45_i)
+    sol = solve_ivp(exponential_decay, [0, 10], [2, 4, 8], method=BS5)
     
     print(sol.t)
     print(sol.y)
 
-Notice that the class `BS45_i` is passed to `solve_ivp`, not the string `"BS45_i"`. The other methods (`BS45`, `CK45`, `CK45_o`, `Ts45`, `Pri6`, `Pri7`, `Pri8` and `SWAG`) can be used in a similar way.
+Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`CK5`, `CKdisc`, `Ts5`, `Pr7`, `Pr8`, `Pr9` and `SWAG`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
@@ -61,16 +66,18 @@ More examples are available as notebooks:
 5. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
 ## References
-[1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28, ISSN 0898-1221. https://doi.org/10.1016/0898-1221(96)00141-1
+[1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28. https://doi.org/10.1016/0898-1221(96)00141-1
 
-[2] J. R. Cash, A. H. Karp, "A Variable Order Runge-Kutta Method for Initial Value Problems with Rapidly Varying Right-Hand Sides", ACM Trans. Math. Softw., Vol. 16, No. 3, 1990, pp. 201-222, ISSN 0098-3500. https://doi.org/10.1145/79505.79507
+[2] J. R. Cash, A. H. Karp, "A Variable Order Runge-Kutta Method for Initial Value Problems with Rapidly Varying Right-Hand Sides", ACM Trans. Math. Softw., Vol. 16, No. 3, 1990, pp. 201-222. https://doi.org/10.1145/79505.79507
 
-[3] Ch. Tsitouras, "Runge-Kutta pairs of order 5(4) satisfying only the first column simplifying assumption", Computers & Mathematics with Applications, Vol. 62, No. 2, pp. 770 - 775, 2011. https://doi.org/10.1016/j.camwa.2011.06.002
+[3] Ch. Tsitouras, "Runge-Kutta pairs of order 5(4) satisfying only the first column simplifying assumption", Computers & Mathematics with Applications, Vol. 62, No. 2, 2011, pp. 770 - 775. https://doi.org/10.1016/j.camwa.2011.06.002
 
 [4] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K., September 6 2018. http://www.peteprince.co.uk/parallel.pdf
 
 [5] L.F. Shampine and M.K. Gordon, "Computer solution of ordinary differential equations: The initial value problem", San Francisco, W.H. Freeman, 1975.
 
-[6] H.A. Watts and L.F. Shampine, "Smoother Interpolants for Adams Codes",  SIAM Journal on Scientific and Statistical Computing, 1986, Vol. 7, No. 1, pp. 334-345. ISSN 0196-5204. https://doi.org/10.1137/0907022
+[6] H.A. Watts and L.F. Shampine, "Smoother Interpolants for Adams Codes",  SIAM Journal on Scientific and Statistical Computing, Vol. 7, No. 1, 1986, pp. 334-345. https://doi.org/10.1137/0907022
 
-[7] H.A. Watts, "Starting step size for an ODE solver", Journal of Computational and Applied Mathematics, Vol. 9, No. 2, 1983, pp. 177-191, ISSN 0377-0427. https://doi.org/10.1016/0377-0427(83)90040-7
+[7] H.A. Watts, "Starting step size for an ODE solver", Journal of Computational and Applied Mathematics, Vol. 9, No. 2, 1983, pp. 177-191. https://doi.org/10.1016/0377-0427(83)90040-7
+
+[8] L.F. Shampine, "Diagnosing Stiffness for Runge–Kutta Methods", SIAM Journal on Scientific and Statistical Computing, Vol. 12, No. 2, 1991, pp. 260-272, https://doi.org/10.1137/0912015
