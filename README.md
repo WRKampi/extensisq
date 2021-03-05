@@ -24,10 +24,10 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 * `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
 * `Pr9`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
 
+The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
+
 One method for a specific type of problem is available:
 * `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
-
-The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
 
 ## Other features
 The initial step size, when not supplied by you, is estimated using the method of Watts [7]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
