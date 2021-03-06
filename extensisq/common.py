@@ -18,11 +18,11 @@ def validate_tol(rtol, atol, y):
     """
     atol = np.asarray(atol)
     rtol = np.asarray(rtol)
-    if atol.ndim > 0 and atol.shape != y.size:
+    if atol.ndim > 0 and atol.shape != (y.size, ):
         raise ValueError("`atol` has wrong shape.")
     if np.any(atol < 0):
         raise ValueError("`atol` must be positive.")
-    if rtol.ndim > 0 and rtol.shape != y.size:
+    if rtol.ndim > 0 and rtol.shape != (y.size, ):
         raise ValueError("`rtol` has wrong shape.")
     if np.any(rtol < 0):
         raise ValueError("`rtol` must be positive.")
