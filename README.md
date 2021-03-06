@@ -14,7 +14,7 @@ Currently, several explicit methods (for non-stiff problems) are provided.
 One multistep method is implemented:
 * `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
 
-Four explicit Runge Kutta methods of order 5 are implemented:
+Three explicit Runge Kutta methods of order 5 are implemented:
 * `BS5`: efficient fifth order method by Bogacki and Shampine [1]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
 * `CK5`: fifth order method with the coefficients from [2], for general use.
 * `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
@@ -24,15 +24,15 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 * `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
 * `Pr9`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
 
+The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
+
 One method for a specific type of problem is available:
 * `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
-
-The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
 
 ## Other features
 The initial step size, when not supplied by you, is estimated using the method of Watts [7]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
 
-Most of extensisq Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8] to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
+Most of extensisq Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
 ## Installation
 
