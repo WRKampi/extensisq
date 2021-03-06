@@ -333,7 +333,7 @@ class RungeKutta(OdeSolver):
             tiny = np.finfo(self.y.dtype).tiny
             wt = np.maximum(avgy, sqrt(tiny))
             # and error vector, wich is a good initial perturbation vector
-            v0 = self._estimate_error(self.K, self.h_previous)
+            v0 = np.atleast_1d(self._estimate_error(self.K, self.h_previous))
 
             # stiff_a determines whether the problem is stiff. In some
             # circumstances it is UNSURE.  The decision depends on two things:
