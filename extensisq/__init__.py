@@ -8,7 +8,7 @@ from extensisq.prince import Pr7, Pr8, Pr9, Pri6, Pri7, Pri8
 from extensisq.shampine import SWAG
 from extensisq.common import NFS
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __author__ = 'W.R. Kampinga'
 __copyright__ = 'Copyright 2020, W.R. Kampinga'
 __license__ = 'MIT'
