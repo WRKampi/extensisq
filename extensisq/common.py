@@ -226,16 +226,17 @@ class RungeKutta(OdeSolver):
                     factor = min(1, factor)
                 h_abs *= factor
 
-                if not self.FSAL:
-                    # evaluate ouput point for interpolation and next step
-                    self.K[self.n_stages] = self.fun(t + h, y_new)
-
             else:
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
                 NFS[()] += 1
-                self.jflstp += 1                      # for stiffness detection
+                if self.nfev_stiff_detect:
+                    self.jflstp += 1                  # for stiffness detection
+
+        if not self.FSAL:
+            # evaluate ouput point for interpolation and next step
+            self.K[self.n_stages] = self.fun(t + h, y_new)
 
         # store for next step and interpolation
         self.h_previous = h
@@ -251,7 +252,7 @@ class RungeKutta(OdeSolver):
         if self.nfev_stiff_detect:
             self.okstp += 1
             self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
-            self._stiff()
+            self._diagnose_stiffness()
             if self.okstp == 20:
                 # reset after the first 10 steps to:
                 # - get stepsize on scale
@@ -300,7 +301,7 @@ class RungeKutta(OdeSolver):
         Q = self.K.T @ self.P
         return HornerDenseOutput(self.t_old, self.t, self.y_old, Q)
 
-    def _stiff(self):
+    def _diagnose_stiffness(self):
         """Stiffness detection.
 
         Test only if there are many recent step failures, or after many
