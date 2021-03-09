@@ -309,6 +309,8 @@ class BS5(RungeKutta):
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm_pre ** self.error_exponent)
                 NFS[()] += 1
+                if self.nfev_stiff_detect:
+                    self.jflstp += 1                  # for stiffness detection
                 continue
 
             # calculate next stage
@@ -334,6 +336,8 @@ class BS5(RungeKutta):
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
                 NFS[()] += 1
+                if self.nfev_stiff_detect:
+                    self.jflstp += 1                  # for stiffness detection
 
         # store for next step and interpolation
         self.h_previous = h
