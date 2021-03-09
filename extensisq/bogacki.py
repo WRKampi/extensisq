@@ -348,7 +348,7 @@ class BS5(RungeKutta):
         # stiffness detection
         if self.nfev_stiff_detect:
             self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
-            self._stiff()
+            self._diagnose_stiffness()
             self.okstp += 1
             if self.okstp == 20:
                 self.havg = h
