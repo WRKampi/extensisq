@@ -34,6 +34,8 @@ The initial step size, when not supplied by you, is estimated using the method o
 
 Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
+Second order stepsize controllers [9, 10] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
+
 ## Installation
 
 You can install extensisq from [PyPI](https://pypi.org/project/extensisq/):
@@ -80,4 +82,8 @@ More examples are available as notebooks:
 
 [7] H.A. Watts, "Starting step size for an ODE solver", Journal of Computational and Applied Mathematics, Vol. 9, No. 2, 1983, pp. 177-191. https://doi.org/10.1016/0377-0427(83)90040-7
 
-[8] L.F. Shampine, "Diagnosing Stiffness for Runge–Kutta Methods", SIAM Journal on Scientific and Statistical Computing, Vol. 12, No. 2, 1991, pp. 260-272, https://doi.org/10.1137/0912015
+[8] L.F. Shampine, "Diagnosing Stiffness for Runge–Kutta Methods", SIAM Journal on Scientific and Statistical Computing, Vol. 12, No. 2, 1991, pp. 260-272. https://doi.org/10.1137/0912015
+
+[9] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877
+
+[10] K. Gustafsson, "Control-Theoretic Techniques for Stepsize Selection in Implicit Runge-Kutta Methods", ACM Trans. Math. Softw., Vol. 20, No. 4, 1994, pp. 496–517. https://doi.org/10.1145/198429.198437

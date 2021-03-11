@@ -12,19 +12,18 @@ NFS = np.array(0)                                         # failed step counter
 
 
 def validate_tol(rtol, atol, y):
-    """Validate tolerance values rtol and atol can be scalar or array-like.
-    The bound values are from RKSuite. These differ from those in scipy.
-    Bounds are applied without warning.
+    """Validate tolerance values. atol can be scalar or array-like, rtol a
+    scalar. The bound values are from RKSuite. These differ from those in
+    scipy. Bounds are applied without warning.
     """
     atol = np.asarray(atol)
-    rtol = np.asarray(rtol)
     if atol.ndim > 0 and atol.shape != (y.size, ):
         raise ValueError("`atol` has wrong shape.")
     if np.any(atol < 0):
         raise ValueError("`atol` must be positive.")
-    if rtol.ndim > 0 and rtol.shape != (y.size, ):
-        raise ValueError("`rtol` has wrong shape.")
-    if np.any(rtol < 0):
+    if not isinstance(rtol, float):
+        raise ValueError("`rtol` must be a float.")
+    if rtol < 0:
         raise ValueError("`rtol` must be positive.")
 
     # atol cannot be exactly zero anymore.
@@ -57,6 +56,7 @@ class RungeKutta(OdeSolver):
       - the scale (weight) is smoothed differently
       - a different tolerance validation is used.
       - stiffness detection is added, can be turned off
+      - second order stepsize control is added.
     """
 
     # effective number of stages
@@ -127,9 +127,29 @@ class RungeKutta(OdeSolver):
             self.jflstp = 0                     # failed step counter, last 40
             self.havg = 0.0                     # average stepsize
 
+    def _init_sc_control(self, sc_params):
+        coefs = {"G": (0.7, -0.4, 0),
+                 "S": (0.6, -0.2, 0),
+                 "H": (1, -0.6, 0),
+                 "standard": (1, 0, 0)}
+        if (isinstance(sc_params, str) and
+                sc_params in ("G", "S", "H", "standard")):
+            kb1, kb2, a = coefs[sc_params]
+        elif isinstance(sc_params, tuple) and len(sc_params) == 3:
+            kb1, kb2, a = sc_params
+        else:
+            raise ValueError('sc_params should be a tuple of length 3 or a '
+                             'valid string like "G", "S", "H" or "standard"')
+        self.minbeta1 = kb1*self.error_exponent
+        self.minbeta2 = kb2*self.error_exponent
+        self.alpha = -a
+        self.safety_sc = SAFETY ** (kb1 + kb2)
+        self.min_error_norm = (MAX_FACTOR/SAFETY) ** (1/self.error_exponent)
+        self.standard_sc = True                                # for first step
+
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None,
-                 nfev_stiff_detect=5000, **extraneous):
+                 nfev_stiff_detect=5000, sc_params='standard', **extraneous):
         warn_extraneous(extraneous)
         super(RungeKutta, self).__init__(fun, t0, y0, t_bound, vectorized,
                                          support_complex=True)
@@ -138,8 +158,10 @@ class RungeKutta(OdeSolver):
         self.f = self.fun(self.t, self.y)
         if self.f.dtype != self.y.dtype:
             raise TypeError('dtypes of solution and derivative do not match')
+        self.error_exponent = -1 / (self.error_estimator_order + 1)
         self._init_stiffness_detection(nfev_stiff_detect)
         self.h_min_a, self.h_min_b = self._init_min_step_parameters()
+        self._init_sc_control(sc_params)
 
         # size of first step:
         if first_step is None:
@@ -152,11 +174,10 @@ class RungeKutta(OdeSolver):
             self.h_abs = validate_first_step(first_step, t0, t_bound)
 
         self.K = np.empty((self.n_stages + 1, self.n), self.y.dtype)
-        self.error_exponent = -1 / (self.error_estimator_order + 1)
         self.FSAL = 1 if self.E[self.n_stages] else 0
         self.h_previous = None
         self.y_old = None
-        NFS[()] = 0                             # global failed step counter
+        NFS[()] = 0                                # global failed step counter
 
     def _step_impl(self):
         # mostly follows the scipy implementation of RungeKutta
@@ -171,6 +192,7 @@ class RungeKutta(OdeSolver):
         # handle final integration steps
         d = abs(self.t_bound - t)                          # remaining interval
         if d < 2 * h_abs:
+            self.standard_sc = True
             if d >= min_step:
                 if h_abs < d:
                     # h_abs < d < 2 * h_abs:
@@ -217,13 +239,27 @@ class RungeKutta(OdeSolver):
             if error_norm < 1:
                 step_accepted = True
 
-                if error_norm == 0:
-                    factor = MAX_FACTOR
+                # don't trust error_norm values that are very small
+                error_norm = max(self.min_error_norm, error_norm)
+
+                if self.standard_sc:
+                    factor = SAFETY * error_norm ** self.error_exponent
                 else:
-                    factor = min(MAX_FACTOR,
-                                 SAFETY * error_norm ** self.error_exponent)
+                    # use SC controller
+                    h_ratio = h / self.h_previous
+                    factor = (error_norm ** self.minbeta1 *
+                              self.error_norm_old ** self.minbeta2 *
+                              h_ratio ** self.minalpha)
+                    factor *= self.safety_sc
+
+                    if step_rejected:
+                        factor *= h_ratio                          # Gustafsson
+
+                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+
                 if step_rejected:
                     factor = min(1, factor)
+
                 h_abs *= factor
 
             else:
@@ -238,11 +274,12 @@ class RungeKutta(OdeSolver):
             # evaluate ouput point for interpolation and next step
             self.K[self.n_stages] = self.fun(t + h, y_new)
 
-        # store for next step and interpolation
+        # store for next step, interpolation and stepsize control
         self.h_previous = h
         self.y_old = y
         self.h_abs = h_abs
         self.f = self.K[self.n_stages].copy()
+        self.error_norm_old = error_norm
 
         # output
         self.t = t_new
@@ -251,12 +288,13 @@ class RungeKutta(OdeSolver):
         # stiffness detection
         if self.nfev_stiff_detect:
             self.okstp += 1
-            self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
+            self.havg = 0.9 * self.havg + 0.1 * h          # exp moving average
             self._diagnose_stiffness()
+
+            # reset after the first 20 steps to:
+            # - get stepsize on scale
+            # - reduce the effect of a possible initial transient
             if self.okstp == 20:
-                # reset after the first 10 steps to:
-                # - get stepsize on scale
-                # - reduce the effect of a possible initial transient
                 self.havg = h
                 self.jflstp = 0
 
@@ -316,7 +354,7 @@ class RungeKutta(OdeSolver):
         # failures occurred in the last 40 successful steps.
         if self.okstp % 40 == 39:
             lotsfl = self.jflstp >= 10
-            self.jflstp = 0               # reset each time
+            self.jflstp = 0                               # reset each 40 steps
         else:
             lotsfl = False
 
@@ -349,7 +387,6 @@ class RungeKutta(OdeSolver):
             # inform the user about stiffness with warning messages
             # the messages about remaining work have been removed from the
             # original code.
-
             if stif is None:
                 # unsure about stiffness
                 if rootre is None:
@@ -392,18 +429,16 @@ class RungeKutta(OdeSolver):
                          'change to a code intended for stiff problems.')
             else:
                 # stif == False
+                # no warning is given
                 if rootre is None:
-                    # no warning is given
                     logging.info(
                         'Stiffness detection has diagnosed the problem as '
                         'non-stiff, without performing power iterations')
                 elif rootre:
-                    # no warning is given
                     logging.info(
                         'The problem has a real dominant root '
                         'and is not stiff')
                 else:
-                    # no warning is given
                     logging.info(
                         'The problem has a complex pair of dominant roots '
                         'and is not stiff')

@@ -58,32 +58,14 @@ class Ts5(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
+    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+        Parameters for the stepsize controller (k*b1, k*b2, a2). The
+        controller is as defined in [2]_, with k the exponent of the standard
+        controller, _n for new and _o for old:
+            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+        Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
+        is the default.
 
     References
     ----------
@@ -91,6 +73,9 @@ class Ts5(RungeKutta):
            first column simplifying assumption", Computers & Mathematics with
            Applications, Vol. 62, No. 2, pp. 770 - 775, 2011.
            https://doi.org/10.1016/j.camwa.2011.06.002
+    .. [2] G. Soederlind, "Digital Filters in Adaptive Time-Stepping", ACM
+           Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26.
+           https://doi.org/10.1145/641876.641877
     """
 
     order = 5

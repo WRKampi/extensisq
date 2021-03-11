@@ -66,6 +66,14 @@ class BS5(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
+    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+        Parameters for the stepsize controller (k*b1, k*b2, a2). The
+        controller is as defined in [3]_, with k the exponent of the standard
+        controller, _n for new and _o for old:
+            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+        Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
+        is the default.
     interpolant : 'best', 'low' or 'free', optional
         Select the interpolant for dense output. The option 'best' is for the
         accurate fifth order interpolant described in [1], which needs 3 extra
@@ -79,39 +87,16 @@ class BS5(RungeKutta):
         is 'low': a safe option for which the method does not loose much of its
         performance when it is used with dense output.
 
-    Attributes
-    ----------
-    n : int
-        Number of equations.
-    status : string
-        Current status of the solver: 'running', 'finished' or 'failed'.
-    t_bound : float
-        Boundary time.
-    direction : float
-        Integration direction: +1 or -1.
-    t : float
-        Current time.
-    y : ndarray
-        Current state.
-    t_old : float
-        Previous time. None if no steps were made yet.
-    step_size : float
-        Size of the last successful step. None if no steps were made yet.
-    nfev : int
-        Number evaluations of the system's right-hand side.
-    njev : int
-        Number of evaluations of the Jacobian. Is always 0 for this solver as
-        it does not use the Jacobian.
-    nlu : int
-        Number of LU decompositions. Is always 0 for this solver.
-
     References
     ----------
     .. [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair",
            Computers & Mathematics with Applications, Vol. 32, No. 6, 1996,
-           pp. 15-28, ISSN 0898-1221.
+           pp. 15-28.
            https://doi.org/10.1016/0898-1221(96)00141-1
     .. [2] RKSUITE: https://www.netlib.org/ode/rksuite/
+    .. [3] G. Soederlind, "Digital Filters in Adaptive Time-Stepping", ACM
+           Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26.
+           https://doi.org/10.1145/641876.641877
     """
 
     order = 5
@@ -224,10 +209,10 @@ class BS5(RungeKutta):
             -374785310/36476731, 186390855/36476731]])
 
     def __init__(self, fun, t0, y0, t_bound, nfev_stiff_detect=5000,
-                 interpolant='low', **extraneous):
+                 sc_params='standard', interpolant='low', **extraneous):
         super(BS5, self).__init__(
             fun, t0, y0, t_bound, nfev_stiff_detect=nfev_stiff_detect,
-            **extraneous)
+            sc_params=sc_params, **extraneous)
         # custom initialization to create extended storage for dense output
         if interpolant not in ('best', 'low', 'free'):
             raise ValueError(
@@ -258,8 +243,9 @@ class BS5(RungeKutta):
         h_abs = min(self.max_step, max(min_step, h_abs))
 
         # handle final integration steps
-        d = abs(self.t_bound - t)               # remaining interval
+        d = abs(self.t_bound - t)                          # remaining interval
         if d < 2 * h_abs:
+            self.standard_sc = True
             if d >= min_step:
                 if h_abs < d:
                     # h_abs < d < 2 * h_abs:
@@ -322,13 +308,28 @@ class BS5(RungeKutta):
             # and evaluate
             if error_norm < 1:
                 step_accepted = True
-                if error_norm == 0:
-                    factor = MAX_FACTOR
+
+                # don't trust error_norm values that are very small
+                error_norm = max(self.min_error_norm, error_norm)
+
+                if self.standard_sc:
+                    factor = SAFETY * error_norm ** self.error_exponent
                 else:
-                    factor = min(MAX_FACTOR,
-                                 SAFETY * error_norm ** self.error_exponent)
+                    # use SC controller
+                    h_ratio = h / self.h_previous
+                    factor = (error_norm ** self.minbeta1 *
+                              self.error_norm_old ** self.minbeta2 *
+                              h_ratio ** self.minalpha)
+                    factor *= self.safety_sc
+
+                    if step_rejected:
+                        factor *= h_ratio                          # Gustafsson
+
+                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+
                 if step_rejected:
                     factor = min(1, factor)
+
                 h_abs *= factor
 
             else:
@@ -344,6 +345,7 @@ class BS5(RungeKutta):
         self.y_old = y
         self.h_abs = h_abs
         self.f = self.K[self.n_stages].copy()
+        self.error_norm_old = error_norm
 
         # output
         self.t = t_new
