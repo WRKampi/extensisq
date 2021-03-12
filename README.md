@@ -84,6 +84,6 @@ More examples are available as notebooks:
 
 [8] L.F. Shampine, "Diagnosing Stiffness for Runge–Kutta Methods", SIAM Journal on Scientific and Statistical Computing, Vol. 12, No. 2, 1991, pp. 260-272. https://doi.org/10.1137/0912015
 
-[9] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877
+[9] K. Gustafsson, "Control Theoretic Techniques for Stepsize Selection in Explicit Runge-Kutta Methods", ACM Trans. Math. Softw., Vol. 17, No. 4, 1991, pp. 533–554. https://doi.org/10.1145/210232.210242
 
-[10] K. Gustafsson, "Control-Theoretic Techniques for Stepsize Selection in Implicit Runge-Kutta Methods", ACM Trans. Math. Softw., Vol. 20, No. 4, 1994, pp. 496–517. https://doi.org/10.1145/198429.198437
+[10] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877

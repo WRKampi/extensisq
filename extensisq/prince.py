@@ -55,14 +55,15 @@ class Pr7(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
         Parameters for the stepsize controller (k*b1, k*b2, a2). The
         controller is as defined in [2]_, with k the exponent of the standard
         controller, _n for new and _o for old:
-            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+            h_n = h * (tol/err)**-b1 * (tol/err_o)**-b2  * (h/h_o)**-a2
         Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
-        is the default.
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
+        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
+        "standard" (1,0,0). Standard is currently the default.
 
     References
     ----------
@@ -178,14 +179,15 @@ class Pr8(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
         Parameters for the stepsize controller (k*b1, k*b2, a2). The
         controller is as defined in [2]_, with k the exponent of the standard
         controller, _n for new and _o for old:
-            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+            h_n = h * (tol/err)**-b1 * (tol/err_o)**-b2  * (h/h_o)**-a2
         Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
-        is the default.
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
+        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
+        "standard" (1,0,0). Standard is currently the default.
 
     References
     ----------
@@ -419,14 +421,15 @@ class Pr9(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
         Parameters for the stepsize controller (k*b1, k*b2, a2). The
         controller is as defined in [2]_, with k the exponent of the standard
         controller, _n for new and _o for old:
-            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+            h_n = h * (tol/err)**-b1 * (tol/err_o)**-b2  * (h/h_o)**-a2
         Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
-        is the default.
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
+        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
+        "standard" (1,0,0). Standard is currently the default.
 
     References
     ----------

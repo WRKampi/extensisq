@@ -131,18 +131,21 @@ class RungeKutta(OdeSolver):
         coefs = {"G": (0.7, -0.4, 0),
                  "S": (0.6, -0.2, 0),
                  "H": (1, -0.6, 0),
+                 "C": (0.7, -0.3, 0),
+                 "H211b": (1/4, 1/4, 1/4),
                  "standard": (1, 0, 0)}
         if (isinstance(sc_params, str) and
-                sc_params in ("G", "S", "H", "standard")):
+                sc_params in ("G", "S", "H", "C", "H211b", "standard")):
             kb1, kb2, a = coefs[sc_params]
         elif isinstance(sc_params, tuple) and len(sc_params) == 3:
             kb1, kb2, a = sc_params
         else:
             raise ValueError('sc_params should be a tuple of length 3 or a '
-                             'valid string like "G", "S", "H" or "standard"')
-        self.minbeta1 = kb1*self.error_exponent
-        self.minbeta2 = kb2*self.error_exponent
-        self.alpha = -a
+                             'valid string like "G", "S", "H", "C", "H211b" '
+                             'or "standard"')
+        self.minbeta1 = kb1 * self.error_exponent
+        self.minbeta2 = kb2 * self.error_exponent
+        self.minalpha = -a
         self.safety_sc = SAFETY ** (kb1 + kb2)
         self.min_error_norm = (MAX_FACTOR/SAFETY) ** (1/self.error_exponent)
         self.standard_sc = True                                # for first step
@@ -239,22 +242,20 @@ class RungeKutta(OdeSolver):
             if error_norm < 1:
                 step_accepted = True
 
-                # don't trust error_norm values that are very small
+                # don't trust very small error_norm values
                 error_norm = max(self.min_error_norm, error_norm)
 
                 if self.standard_sc:
                     factor = SAFETY * error_norm ** self.error_exponent
+                    self.standard_sc = False
+
                 else:
-                    # use SC controller
+                    # use second order SC controller
                     h_ratio = h / self.h_previous
                     factor = (error_norm ** self.minbeta1 *
                               self.error_norm_old ** self.minbeta2 *
                               h_ratio ** self.minalpha)
                     factor *= self.safety_sc
-
-                    if step_rejected:
-                        factor *= h_ratio                          # Gustafsson
-
                     factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
 
                 if step_rejected:
@@ -266,6 +267,7 @@ class RungeKutta(OdeSolver):
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
+
                 NFS[()] += 1
                 if self.nfev_stiff_detect:
                     self.jflstp += 1                  # for stiffness detection

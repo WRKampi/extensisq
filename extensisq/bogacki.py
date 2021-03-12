@@ -66,14 +66,15 @@ class BS5(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", or "S"
+    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
         Parameters for the stepsize controller (k*b1, k*b2, a2). The
         controller is as defined in [3]_, with k the exponent of the standard
         controller, _n for new and _o for old:
-            h_n = h * (tol/err)**b1 * (tol/err_o)**b2  * (h/h_o)**-a2
+            h_n = h * (tol/err)**-b1 * (tol/err_o)**-b2  * (h/h_o)**-a2
         Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), and "standard" (1,0,0). Standard
-        is the default.
+        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
+        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
+        "standard" (1,0,0). Standard is currently the default.
     interpolant : 'best', 'low' or 'free', optional
         Select the interpolant for dense output. The option 'best' is for the
         accurate fifth order interpolant described in [1], which needs 3 extra
@@ -294,6 +295,7 @@ class BS5(RungeKutta):
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm_pre ** self.error_exponent)
+
                 NFS[()] += 1
                 if self.nfev_stiff_detect:
                     self.jflstp += 1                  # for stiffness detection
@@ -309,22 +311,20 @@ class BS5(RungeKutta):
             if error_norm < 1:
                 step_accepted = True
 
-                # don't trust error_norm values that are very small
+                # don't trust very small error_norm values
                 error_norm = max(self.min_error_norm, error_norm)
 
                 if self.standard_sc:
                     factor = SAFETY * error_norm ** self.error_exponent
+                    self.standard_sc = False
+
                 else:
-                    # use SC controller
+                    # use second order SC controller
                     h_ratio = h / self.h_previous
                     factor = (error_norm ** self.minbeta1 *
                               self.error_norm_old ** self.minbeta2 *
                               h_ratio ** self.minalpha)
                     factor *= self.safety_sc
-
-                    if step_rejected:
-                        factor *= h_ratio                          # Gustafsson
-
                     factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
 
                 if step_rejected:
@@ -336,6 +336,7 @@ class BS5(RungeKutta):
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
+
                 NFS[()] += 1
                 if self.nfev_stiff_detect:
                     self.jflstp += 1                  # for stiffness detection
