@@ -62,7 +62,7 @@ class Ts5(RungeKutta):
         Parameters for the stepsize controller (k*b1, k*b2, a2). The
         controller is as defined in [2]_, with k the exponent of the standard
         controller, _n for new and _o for old:
-            h_n = h * (tol/err)**-b1 * (tol/err_o)**-b2  * (h/h_o)**-a2
+            h_n = h * (err/tol)**-b1 * (err_o/tol_o)**-b2  * (h/h_o)**-a2
         Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
         (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
         (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and

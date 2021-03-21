@@ -133,9 +133,12 @@ class RungeKutta(OdeSolver):
                  "H": (1, -0.6, 0),
                  "C": (0.7, -0.3, 0),
                  "H211b": (1/4, 1/4, 1/4),
+                 "H211db": (1/2, 1/2, 1/2),
+                 "H221db": (2, -1, -1),
                  "standard": (1, 0, 0)}
         if (isinstance(sc_params, str) and
-                sc_params in ("G", "S", "H", "C", "H211b", "standard")):
+                sc_params in ("G", "S", "H", "C", "H211b", "H211db", "H221db",
+                              "standard")):
             kb1, kb2, a = coefs[sc_params]
         elif isinstance(sc_params, tuple) and len(sc_params) == 3:
             kb1, kb2, a = sc_params
@@ -264,6 +267,9 @@ class RungeKutta(OdeSolver):
                 h_abs *= factor
 
             else:
+                if np.isnan(error_norm) or np.isinf(error_norm):
+                    return False, "Overflow or underflow encountered."
+
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
                              SAFETY * error_norm ** self.error_exponent)
