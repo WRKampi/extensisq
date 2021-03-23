@@ -32,7 +32,7 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`CK5`, `CKdisc`, `Ts5`, `Pr7`, `Pr8`, `Pr9` and `SWAG`) can be used in a similar way.
+Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc` and `SSV2stab`) can be used in a similar way.
 
 More examples are available as notebooks:
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
