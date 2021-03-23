@@ -9,33 +9,6 @@ This package extends scipy.integrate with various methods (OdeSolver classes) fo
 [![release-date](https://img.shields.io/github/release-date/WRKampi/extensisq?style=flat-square)](https://github.com/WRKampi/extensisq/releases)
 
 
-Currently, several explicit methods (for non-stiff problems) are provided.
-
-One multistep method is implemented:
-* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
-
-Three explicit Runge Kutta methods of order 5 are implemented:
-* `BS5`: efficient fifth order method by Bogacki and Shampine [1]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
-* `CK5`: fifth order method with the coefficients from [2], for general use.
-* `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
-
-Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
-* `Pr7`: a seventh order discrete method with fifth order error estimate, derived from a sixth order continuous method.
-* `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
-* `Pr9`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
-
-The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
-
-One method for a specific type of problem is available:
-* `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
-
-## Other features
-The initial step size, when not supplied by you, is estimated using the method of Watts [7]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
-
-Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
-
-Second order stepsize controllers [9, 10] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
-
 ## Installation
 
 You can install extensisq from [PyPI](https://pypi.org/project/extensisq/):
@@ -45,6 +18,7 @@ You can install extensisq from [PyPI](https://pypi.org/project/extensisq/):
 Or, if you'd rather use [conda](https://anaconda.org/conda-forge/extensisq):
 
     conda install -c conda-forge extensisq
+
 
 ## Example
 Borrowed from the the scipy documentation:
@@ -67,6 +41,40 @@ More examples are available as notebooks:
 4. [Riccati equation, higher order Prince methods](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
 5. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
+
+## Methods
+
+Currently, several explicit methods (for non-stiff problems) are provided.
+
+One multistep method is implemented:
+* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM`. Matlab's method `ode113` is related.
+
+Three explicit Runge Kutta methods of order 5 are implemented:
+* `BS5`: efficient fifth order method by Bogacki and Shampine [1,A]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
+* `CK5`: fifth order method with the coefficients from [2], for general use.
+* `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
+
+Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
+* `Pr7`: a seventh order discrete method with fifth order error estimate, derived from a sixth order continuous method.
+* `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
+* `Pr9`: a ninth order discrete method with seventh order error estimate, derived from an eighth order continuous method.
+
+The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
+
+One method for a specific type of problem is available:
+* `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
+* `CFMR7osc`: seventh order explicit Runge Kutta method, with high dispersion and dissipation orders, for problems with oscillating solutions [12].
+* `SSV2stab`: second order stabilized Runge Kutta Chebyshev method, to explicity and efficiently solve a class of large systems of mildly stiff ordinary differential equations [13,C].
+
+## Other features
+The initial step size, when not supplied by you, is estimated using the method of Watts [7,B]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
+
+Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8,A] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
+
+Second order stepsize controllers [9-11] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
+
+
+
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28. https://doi.org/10.1016/0898-1221(96)00141-1
 
@@ -86,4 +94,19 @@ More examples are available as notebooks:
 
 [9] K. Gustafsson, "Control Theoretic Techniques for Stepsize Selection in Explicit Runge-Kutta Methods", ACM Trans. Math. Softw., Vol. 17, No. 4, 1991, pp. 533–554. https://doi.org/10.1145/210232.210242
 
-[10] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877
+[10] G.Söderlind, "Automatic Control and Adaptive Time-Stepping", Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310. https://doi.org/10.1023/A:1021160023092
+
+[11] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw., Vol. 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877
+
+[12] M. Calvo, J.M. Franco, J.I. Montijano, L. Randez, "Explicit Runge-Kutta methods for initial value problems with oscillating solutions", Journal of Computational and Applied Mathematics, Vol. 76, No. 1–2, 1996, pp. 195-212. https://doi.org/10.1016/S0377-0427(96)00103-3
+
+[13] B.P. Sommeijer, L.F. Shampine, J.G. Verwer, "RKC: An explicit solver for parabolic PDEs", Journal of Computational and Applied Mathematics, Vol. 88, No. 2, 1998, pp. 315-326. https://doi.org/10.1016/S0377-0427(97)00219-7
+
+
+## Original source codes
+
+[A] RKSuite, R.W. Brankin,  I. Gladwell,  L.F. Shampine. https://www.netlib.org/ode/rksuite/
+
+[B] DdeABM, L.F. Shampine, H.A. Watts, M.K. Gordon. https://www.netlib.org/slatec/src/
+
+[C] RKC, B.P. Sommeijer, L.F. Shampine, J.G. Verwer. https://www.netlib.org/ode/
