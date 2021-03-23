@@ -61,7 +61,7 @@ Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 
 The numbers in the names refer to the discrete methods, while the orders in [4] refer to the continuous methods. These  methods are relatively efficient when dense output is needed, because the interpolants are free. (Other high-order methods typically need several additional function evaluations for dense output.)
 
-Three methods for a specific type of problem is available:
+Three methods for specific types of problems are available:
 * `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
 * `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently and accurately solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations up to low to moderate accuracy. Equations arising from semi-discretization of parabolic PDEs are a typical use case.
