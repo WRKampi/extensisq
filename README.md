@@ -63,7 +63,7 @@ The numbers in the names refer to the discrete methods, while the orders in [4] 
 
 Three methods for a specific type of problem is available:
 * `CKdisc`: variable order solver by Cash and Karp, tailored to solve non-smooth problems efficiently [2].
-* `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation 9, for problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
+* `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations, typically arising from semi-discretization of parabolic PDEs.
 
 ## Other features
