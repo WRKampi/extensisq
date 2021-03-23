@@ -103,7 +103,7 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 [13] B.P. Sommeijer, L.F. Shampine, J.G. Verwer, "RKC: An explicit solver for parabolic PDEs", Journal of Computational and Applied Mathematics, Vol. 88, No. 2, 1998, pp. 315-326. https://doi.org/10.1016/S0377-0427(97)00219-7
 
 
-## Original source codes
+## Original source codes (Fortran)
 
 [A] RKSuite, R.W. Brankin,  I. Gladwell,  L.F. Shampine. https://www.netlib.org/ode/rksuite/
 
