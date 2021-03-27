@@ -1,7 +1,7 @@
 import numpy as np
 from warnings import warn
 import logging
-from scipy.integrate._ivp.rk import norm, SAFETY, MAX_FACTOR, MIN_FACTOR
+from scipy.integrate._ivp.rk import norm, MAX_FACTOR, MIN_FACTOR
 from extensisq.common import RungeKutta, HornerDenseOutput, NFS
 
 
@@ -66,15 +66,16 @@ class BS5(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
-        Parameters for the stepsize controller (k*b1, k*b2, a2). The
-        controller is as defined in [3]_, with k the exponent of the standard
-        controller, _n for new and _o for old:
-            h_n = h * (err/tol)**-b1 * (err_o/tol_o)**-b2  * (h/h_o)**-a2
-        Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
-        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
-        "standard" (1,0,0). Standard is currently the default.
+    sc_params : tuple of size 4, "standard", "G", "H" or "W", optional
+        Parameters for the stepsize controller (k*b1, k*b2, a2, g). The step
+        size controller is, with k the exponent of the standard controller,
+        _n for new and _o for old:
+            h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
+                * (err/tol)**-b1 * (err_o/tol_o)**-b2
+        Predefined parameters are:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        The default for this method is "S".
     interpolant : 'best', 'low' or 'free', optional
         Select the interpolant for dense output. The option 'best' is for the
         accurate fifth order interpolant described in [1], which needs 3 extra
@@ -95,9 +96,6 @@ class BS5(RungeKutta):
            pp. 15-28.
            https://doi.org/10.1016/0898-1221(96)00141-1
     .. [2] RKSUITE: https://www.netlib.org/ode/rksuite/
-    .. [3] G. Soederlind, "Digital Filters in Adaptive Time-Stepping", ACM
-           Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26.
-           https://doi.org/10.1145/641876.641877
     """
 
     order = 5
@@ -106,6 +104,7 @@ class BS5(RungeKutta):
     n_extra_stages = 3      # for dense output
     tanang = 5.2
     stbrad = 3.9
+    sc_params = "S"
 
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1])
@@ -293,8 +292,9 @@ class BS5(RungeKutta):
             # reject step if pre_error too large
             if error_norm_pre > 1:
                 step_rejected = True
-                h_abs *= max(MIN_FACTOR,
-                             SAFETY * error_norm_pre ** self.error_exponent)
+                h_abs *= max(
+                    MIN_FACTOR,
+                    self.safety * error_norm_pre ** self.error_exponent)
 
                 NFS[()] += 1
                 if self.nfev_stiff_detect:
@@ -315,16 +315,16 @@ class BS5(RungeKutta):
                 error_norm = max(self.min_error_norm, error_norm)
 
                 if self.standard_sc:
-                    factor = SAFETY * error_norm ** self.error_exponent
+                    factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
 
                 else:
                     # use second order SC controller
                     h_ratio = h / self.h_previous
-                    factor = (error_norm ** self.minbeta1 *
-                              self.error_norm_old ** self.minbeta2 *
-                              h_ratio ** self.minalpha)
-                    factor *= self.safety_sc
+                    factor = self.safety_sc * (
+                        error_norm ** self.minbeta1 *
+                        self.error_norm_old ** self.minbeta2 *
+                        h_ratio ** self.minalpha)
                     factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
 
                 if step_rejected:
@@ -338,7 +338,7 @@ class BS5(RungeKutta):
 
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
-                             SAFETY * error_norm ** self.error_exponent)
+                             self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
                 if self.nfev_stiff_detect:

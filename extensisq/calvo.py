@@ -58,15 +58,16 @@ class CFMR7osc(RungeKutta):
         of `nfev_stiff_detect`. For the assessment itself, the problem is
         assessed as non-stiff if the predicted nfev to complete the integration
         is lower than `nfev_stiff_detect`. The default value is 5000.
-    sc_params : tuple of size 3, "standard", "G", "H", "S", "C", or "H211b"
-        Parameters for the stepsize controller (k*b1, k*b2, a2). The
-        controller is as defined in [2]_, with k the exponent of the standard
-        controller, _n for new and _o for old:
-            h_n = h * (err/tol)**-b1 * (err_o/tol_o)**-b2  * (h/h_o)**-a2
-        Predefined coefficients are Gustafsson "G" (0.7,-0.4,0), Soederlind "S"
-        (0.6,-0.2,0), Hairer "H" (1,-0.6,0), central between these three "C"
-        (0.7,-0.3,0), Soederlind's digital filter "H211b" (1/4,1/4,1/4) and
-        "standard" (1,0,0). Standard is currently the default.
+    sc_params : tuple of size 4, "standard", "G", "H" or "W", optional
+        Parameters for the stepsize controller (k*b1, k*b2, a2, g). The step
+        size controller is, with k the exponent of the standard controller,
+        _n for new and _o for old:
+            h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
+                * (err/tol)**-b1 * (err_o/tol_o)**-b2
+        Predefined parameters are:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        The default for this method is "S".
 
     References
     ----------
@@ -75,15 +76,13 @@ class CFMR7osc(RungeKutta):
            solutions", Journal of Computational and Applied Mathematics, Vol.
            76, No. 1–2, 1996, pp. 195-212.
            https://doi.org/10.1016/S0377-0427(96)00103-3
-    .. [2] G. Soederlind, "Digital Filters in Adaptive Time-Stepping", ACM
-           Trans. Math. Softw. Vol 29, No. 1, 2003, pp. 1–26.
-           https://doi.org/10.1145/641876.641877
     """
     order = 7
     error_estimator_order = 5
     n_stages = 9
     tanang = 40
     stbrad = 4.7
+    sc_params = "S"
 
     # time step fractions
     C = np.array([0, 4/63, 2/21, 1/7, 7/17, 13/24, 7/9, 91/100, 1])

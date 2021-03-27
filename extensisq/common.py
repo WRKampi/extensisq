@@ -5,7 +5,7 @@ import logging
 from scipy.integrate._ivp.common import (
     validate_max_step, norm, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from scipy.integrate._ivp.rk import SAFETY, MIN_FACTOR, MAX_FACTOR
+from scipy.integrate._ivp.rk import MIN_FACTOR, MAX_FACTOR
 
 
 NFS = np.array(0)                                         # failed step counter
@@ -26,7 +26,7 @@ def validate_tol(rtol, atol, y):
     if rtol < 0:
         raise ValueError("`rtol` must be positive.")
 
-    # atol cannot be exactly zero anymore.
+    # atol cannot be exactly zero.
     # For double precision float: sqrt(tiny) ~ 1.5e-154
     tiny = np.finfo(y.dtype).tiny
     atol = np.maximum(atol, sqrt(tiny))
@@ -84,10 +84,12 @@ class RungeKutta(OdeSolver):
     P: np.ndarray = NotImplemented              # shape: [n_stages + 1,
     #                                                     order_polynomial]
 
-    # Parameters for stiffness detection. These are not needed if stiffness
-    # detection is disabled (by setting nfev_stiff_detect=0).
+    # Parameters for stiffness detection, optional
     stbrad: float = NotImplemented              # radius of the arc
     tanang: float = NotImplemented              # tan(valid angle < pi/2)
+
+    # Parameters for stepsize control, optional
+    sc_params = NotImplemented                  # tuple, or str
 
     def _init_min_step_parameters(self):
         """Define the parameters h_min_a and h_min_b for the min_step rule:
@@ -102,9 +104,8 @@ class RungeKutta(OdeSolver):
                 diff = abs(c1 - c2)
                 if diff:
                     cdiff = min(cdiff, diff)
-        small = 1e-3
-        if cdiff < small:
-            cdiff = small
+        if cdiff < 1e-3:
+            cdiff = 1e-3
             logging.warning(
                 'Some C-values of this Runge Kutta method are nearly the '
                 'same but not identical. This limits the minimum stepsize'
@@ -122,40 +123,48 @@ class RungeKutta(OdeSolver):
             raise ValueError(
                 "`nfev_stiff_detect` must be a non-negative integer.")
         self.nfev_stiff_detect = nfev_stiff_detect
-        if nfev_stiff_detect:
+        if NotImplemented in (self.stbrad, self.tanang):
+            # disable stiffness detection if not implemented
+            if nfev_stiff_detect not in (5000, 0):
+                warn("This method does not implement stiffness detection. "
+                     "Changing the value of nfev_stiff_detect does nothing.")
+            print("no stiffness detection")
+            self.nfev_stiff_detect = 0
+        if self.nfev_stiff_detect:
             self.okstp = 0                      # successful step counter
             self.jflstp = 0                     # failed step counter, last 40
             self.havg = 0.0                     # average stepsize
 
     def _init_sc_control(self, sc_params):
-        coefs = {"G": (0.7, -0.4, 0),
-                 "S": (0.6, -0.2, 0),
-                 "H": (1, -0.6, 0),
-                 "C": (0.7, -0.3, 0),
-                 "H211b": (1/4, 1/4, 1/4),
-                 "H211db": (1/2, 1/2, 1/2),
-                 "H221db": (2, -1, -1),
-                 "standard": (1, 0, 0)}
-        if (isinstance(sc_params, str) and
-                sc_params in ("G", "S", "H", "C", "H211b", "H211db", "H221db",
-                              "standard")):
-            kb1, kb2, a = coefs[sc_params]
-        elif isinstance(sc_params, tuple) and len(sc_params) == 3:
-            kb1, kb2, a = sc_params
+        coefs = {"G": (0.7, -0.4, 0, 0.9),
+                 "S": (0.6, -0.2, 0, 0.9),
+                 "W": (2, -1, -1, 0.8),
+                 "standard": (1, 0, 0, 0.9)}
+        if self.sc_params == NotImplemented:
+            # use standard controller if not specified otherwise
+            sc_params = sc_params or "standard"
         else:
-            raise ValueError('sc_params should be a tuple of length 3 or a '
-                             'valid string like "G", "S", "H", "C", "H211b" '
-                             'or "standard"')
+            # use default controller of method if not specified otherwise
+            sc_params = sc_params or self.sc_params
+        if (isinstance(sc_params, str) and sc_params in coefs):
+            kb1, kb2, a, g = coefs[sc_params]
+        elif isinstance(sc_params, tuple) and len(sc_params) == 4:
+            kb1, kb2, a, g = sc_params
+        else:
+            raise ValueError('sc_params should be a tuple of length 3 or one '
+                             'of the strings "G", "S" or "standard"')
+        # set all parameters
         self.minbeta1 = kb1 * self.error_exponent
         self.minbeta2 = kb2 * self.error_exponent
         self.minalpha = -a
-        self.safety_sc = SAFETY ** (kb1 + kb2)
-        self.min_error_norm = (MAX_FACTOR/SAFETY) ** (1/self.error_exponent)
+        self.safety = g
+        self.safety_sc = g ** (kb1 + kb2)
+        self.min_error_norm = (MAX_FACTOR/g) ** (1/self.error_exponent)
         self.standard_sc = True                                # for first step
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None,
-                 nfev_stiff_detect=5000, sc_params='standard', **extraneous):
+                 nfev_stiff_detect=5000, sc_params=None, **extraneous):
         warn_extraneous(extraneous)
         super(RungeKutta, self).__init__(fun, t0, y0, t_bound, vectorized,
                                          support_complex=True)
@@ -186,7 +195,7 @@ class RungeKutta(OdeSolver):
         NFS[()] = 0                                # global failed step counter
 
     def _step_impl(self):
-        # mostly follows the scipy implementation of RungeKutta
+        # mostly follows the scipy implementation of scipy's RungeKutta
         t = self.t
         y = self.y
 
@@ -249,16 +258,16 @@ class RungeKutta(OdeSolver):
                 error_norm = max(self.min_error_norm, error_norm)
 
                 if self.standard_sc:
-                    factor = SAFETY * error_norm ** self.error_exponent
+                    factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
 
                 else:
                     # use second order SC controller
                     h_ratio = h / self.h_previous
-                    factor = (error_norm ** self.minbeta1 *
-                              self.error_norm_old ** self.minbeta2 *
-                              h_ratio ** self.minalpha)
-                    factor *= self.safety_sc
+                    factor = self.safety_sc * (
+                        error_norm ** self.minbeta1 *
+                        self.error_norm_old ** self.minbeta2 *
+                        h_ratio ** self.minalpha)
                     factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
 
                 if step_rejected:
@@ -267,16 +276,16 @@ class RungeKutta(OdeSolver):
                 h_abs *= factor
 
             else:
-                if np.isnan(error_norm) or np.isinf(error_norm):
-                    return False, "Overflow or underflow encountered."
-
                 step_rejected = True
                 h_abs *= max(MIN_FACTOR,
-                             SAFETY * error_norm ** self.error_exponent)
+                             self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
                 if self.nfev_stiff_detect:
                     self.jflstp += 1                  # for stiffness detection
+
+                if np.isnan(error_norm) or np.isinf(error_norm):
+                    return False, "Overflow or underflow encountered."
 
         if not self.FSAL:
             # evaluate ouput point for interpolation and next step
