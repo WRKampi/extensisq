@@ -10,7 +10,7 @@ from extensisq.shampine import SWAG
 from extensisq.calvo import CFMR7osc
 from extensisq.sommeijer import SSV2stab
 
-__version__ = '0.2.3'
+__version__ = '0.3.0'
 __author__ = 'W.R. Kampinga'
 __copyright__ = 'Copyright 2020, W.R. Kampinga'
 __license__ = 'MIT'

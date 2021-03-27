@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="extensisq",
-    version="0.2.3",
+    version="0.3.0",
     author="W.R. Kampinga",
     author_email='wrkampi@tuta.io',
     description="Extend scipy.integrate with various methods for solve_ivp",
