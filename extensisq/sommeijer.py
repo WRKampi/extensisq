@@ -205,7 +205,7 @@ class SSV2stab(OdeSolver):
             # evaluated in vtemp1(*). Mod: a factor 4/3*(m**2-1) and a lower
             # bound are added to the calculation of hmin.
             h = self.direction * absh
-            # hmin = 10.0 * self.uround * max(abs(t) + abs(t+h))         # orig
+            # hmin = 10.0 * self.uround * max(abs(t) + abs(t+h))     # original
             hmin = max(self.sqrtmin,
                        13.3*self.uround*(abs(t) + absh)*(m**2 - 1))       # mod
             self._stages(t, yn, fn, h, m, y, vtemp1, vtemp2)           # stages
@@ -214,7 +214,7 @@ class SSV2stab(OdeSolver):
             # Estimate the local error and compute its weighted RMS norm.
             # use average rather than the elementwise maximum.
             # wt = self.atol + self.rtol * np.maximum(np.abs(y),
-            #                                         np.abs(yn))   # orig
+            #                                         np.abs(yn))    # original
             wt = self.atol + self.rtol * 0.5 * (np.abs(y) + np.abs(yn))   # mod
             est = 0.8 * (yn - y) + 0.4 * h * (fn + vtemp1)
             err = norm(est / wt)
