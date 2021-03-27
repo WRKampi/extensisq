@@ -98,7 +98,7 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 
 [11] G. Söderlind, "Digital Filters in Adaptive Time-Stepping", ACM Trans. Math. Softw., Vol. 29, No. 1, 2003, pp. 1–26. https://doi.org/10.1145/641876.641877
 
-[12] M. Calvo, J.M. Franco, J.I. Montijano, L. Randez, "Explicit Runge-Kutta methods for initial value problems with oscillating solutions", Journal of Computational and Applied Mathematics, Vol. 76, No. 1–2, 1996, pp. 195-212. https://doi.org/10.1016/S0377-0427(96)00103-3
+[12] M. Calvo, J.M. Franco, J.I. Montijano, L. Rández, "Explicit Runge-Kutta methods for initial value problems with oscillating solutions", Journal of Computational and Applied Mathematics, Vol. 76, No. 1–2, 1996, pp. 195-212. https://doi.org/10.1016/S0377-0427(96)00103-3
 
 [13] B.P. Sommeijer, L.F. Shampine, J.G. Verwer, "RKC: An explicit solver for parabolic PDEs", Journal of Computational and Applied Mathematics, Vol. 88, No. 2, 1998, pp. 315-326. https://doi.org/10.1016/S0377-0427(97)00219-7
 
