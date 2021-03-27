@@ -107,6 +107,6 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 
 [A] RKSuite, R.W. Brankin,  I. Gladwell,  L.F. Shampine. https://www.netlib.org/ode/rksuite/
 
-[B] DdeABM, L.F. Shampine, H.A. Watts, M.K. Gordon. https://www.netlib.org/slatec/src/
+[B] DDEABM, L.F. Shampine, H.A. Watts, M.K. Gordon. https://www.netlib.org/slatec/src/
 
 [C] RKC, B.P. Sommeijer, L.F. Shampine, J.G. Verwer. https://www.netlib.org/ode/
