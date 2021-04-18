@@ -1,6 +1,5 @@
 import numpy as np
 from warnings import warn
-import logging
 from scipy.integrate._ivp.rk import norm, MAX_FACTOR, MIN_FACTOR
 from extensisq.common import RungeKutta, HornerDenseOutput, NFS
 
@@ -237,38 +236,10 @@ class BS5(RungeKutta):
         t = self.t
         y = self.y
 
-        # limit step size
-        h_abs = self.h_abs
-        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
-        h_abs = min(self.max_step, max(min_step, h_abs))
-
-        # handle final integration steps
-        d = abs(self.t_bound - t)                          # remaining interval
-        if d < 2 * h_abs:
-            self.standard_sc = True
-            if d >= min_step:
-                if h_abs < d:
-                    # h_abs < d < 2 * h_abs:
-                    # split d over last two steps ("look ahead").
-                    # This reduces the chance of a very small last step.
-                    h_abs = max(0.5 * d, min_step)
-                else:
-                    # d <= h_abs:
-                    # don't step over t_bound
-                    h_abs = d
-            else:
-                # d < min_step:
-                # use linear extrapolation in this rare case
-                h = self.t_bound - t
-                y_new = y + h * self.f
-                self.h_previous = h
-                self.y_old = y
-                self.t = self.t_bound
-                self.y = y_new
-                self.f = None                    # to signal _dense_output_impl
-                logging.warning(
-                    'Linear extrapolation was used in the final step.')
-                return True, None
+        h_abs, min_step = self._reassess_stepsize(t, y)
+        if h_abs is None:
+            # linear extrapolation for last step
+            return True, None
 
         # loop until step accepted
         step_accepted = False
@@ -341,8 +312,7 @@ class BS5(RungeKutta):
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
-                if self.nfev_stiff_detect:
-                    self.jflstp += 1                  # for stiffness detection
+                self.jflstp += 1                      # for stiffness detection
 
         # store for next step and interpolation
         self.h_previous = h
@@ -356,13 +326,7 @@ class BS5(RungeKutta):
         self.y = y_new
 
         # stiffness detection
-        if self.nfev_stiff_detect:
-            self.havg = 0.9 * self.havg + 0.1 * h     # exp moving average
-            self._diagnose_stiffness()
-            self.okstp += 1
-            if self.okstp == 20:
-                self.havg = h
-                self.jflstp = 0
+        self._diagnose_stiffness()
 
         return True, None
 

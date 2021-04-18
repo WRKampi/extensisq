@@ -258,36 +258,10 @@ class CKdisc(RungeKutta):
         twiddle = self.twiddle
         quit = self.quit
 
-        # limit step size
-        h_abs = self.h_abs
-        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
-        h_abs = min(self.max_step, max(min_step, h_abs))
-
-        # handle final integration steps
-        d = abs(self.t_bound - t)               # remaining interval
-        if d < 2 * h_abs:
-            if d >= min_step:
-                if h_abs < d:
-                    # h_abs < d < 2 * h_abs:
-                    # split d over last two steps ("look ahead").
-                    # This reduces the chance of a very small last step.
-                    h_abs = max(0.5 * d, min_step)
-                else:
-                    # d <= h_abs:
-                    # don't step over t_bound
-                    h_abs = d
-            else:
-                # d < min_step:
-                # use linear extrapolation in this rare case
-                h = self.t_bound - t
-                y_new = y + h * self.f
-                self.h_previous = h
-                self.y_old = y
-                self.t = self.t_bound
-                self.y = y_new
-                self.f = None                    # to signal _dense_output_impl
-                warn('\nLinear extrapolation was used in the final step.')
-                return True, None
+        h_abs, min_step = self._reassess_stepsize(t, y)
+        if h_abs is None:
+            # linear extrapolation for last step
+            return True, None
 
         order_accepted = 0
         step_rejected = False
