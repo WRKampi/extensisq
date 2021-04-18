@@ -15,7 +15,7 @@ __author__ = 'W.R. Kampinga'
 __copyright__ = 'Copyright 2020, W.R. Kampinga'
 __license__ = 'MIT'
 __credits__ = (
-    'scipy', 'L.F Shampine', 'P. Bogacki', 'J.R. Cash', 'A.H. Karp',
-    'Ch. Tsitouras', 'P.J. Prince', 'H.A. Watts', 'M.K. Gordon',
-    'G. Soederlind', 'K. Gustafsson', 'M. Calvo', 'J.M. Franco',
+    'scipy', 'L.F Shampine', 'P. Bogacki', 'R.W. Brankin', 'I. Gladwell',
+    'J.R. Cash', 'A.H. Karp', 'Ch. Tsitouras', 'P.J. Prince', 'H.A. Watts',
+    'M.K. Gordon', 'G. Soederlind', 'K. Gustafsson', 'M. Calvo', 'J.M. Franco',
     'J.I. Montijano', 'L. Randez', 'B.P. Sommeijer', 'J.G. Verwer')
