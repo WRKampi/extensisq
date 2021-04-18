@@ -128,7 +128,6 @@ class RungeKutta(OdeSolver):
             if nfev_stiff_detect not in (5000, 0):
                 warn("This method does not implement stiffness detection. "
                      "Changing the value of nfev_stiff_detect does nothing.")
-            print("no stiffness detection")
             self.nfev_stiff_detect = 0
         self.jflstp = 0                         # failed step counter, last 40
         if self.nfev_stiff_detect:
