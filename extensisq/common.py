@@ -130,9 +130,9 @@ class RungeKutta(OdeSolver):
                      "Changing the value of nfev_stiff_detect does nothing.")
             print("no stiffness detection")
             self.nfev_stiff_detect = 0
+        self.jflstp = 0                         # failed step counter, last 40
         if self.nfev_stiff_detect:
             self.okstp = 0                      # successful step counter
-            self.jflstp = 0                     # failed step counter, last 40
             self.havg = 0.0                     # average stepsize
 
     def _init_sc_control(self, sc_params):
@@ -152,7 +152,7 @@ class RungeKutta(OdeSolver):
             kb1, kb2, a, g = sc_params
         else:
             raise ValueError('sc_params should be a tuple of length 3 or one '
-                             'of the strings "G", "S" or "standard"')
+                             'of the strings "G", "S", "W" or "standard"')
         # set all parameters
         self.minbeta1 = kb1 * self.error_exponent
         self.minbeta2 = kb2 * self.error_exponent
@@ -199,38 +199,10 @@ class RungeKutta(OdeSolver):
         t = self.t
         y = self.y
 
-        # limit step size
-        h_abs = self.h_abs
-        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
-        h_abs = min(self.max_step, max(min_step, h_abs))
-
-        # handle final integration steps
-        d = abs(self.t_bound - t)                          # remaining interval
-        if d < 2 * h_abs:
-            self.standard_sc = True
-            if d >= min_step:
-                if h_abs < d:
-                    # h_abs < d < 2 * h_abs:
-                    # split d over last two steps ("look ahead").
-                    # This reduces the chance of a very small last step.
-                    h_abs = max(0.5 * d, min_step)
-                else:
-                    # d <= h_abs:
-                    # don't step over t_bound
-                    h_abs = d
-            else:
-                # d < min_step:
-                # use linear extrapolation in this rare case
-                h = self.t_bound - t
-                y_new = y + h * self.f
-                self.h_previous = h
-                self.y_old = y
-                self.t = self.t_bound
-                self.y = y_new
-                self.f = None                      # signals _dense_output_impl
-                logging.warning(
-                    'Linear extrapolation was used in the final step.')
-                return True, None
+        h_abs, min_step = self._reassess_stepsize(t, y)
+        if h_abs is None:
+            # linear extrapolation for last step
+            return True, None
 
         # loop until the step is accepted
         step_accepted = False
@@ -281,8 +253,7 @@ class RungeKutta(OdeSolver):
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
-                if self.nfev_stiff_detect:
-                    self.jflstp += 1                  # for stiffness detection
+                self.jflstp += 1                      # for stiffness detection
 
                 if np.isnan(error_norm) or np.isinf(error_norm):
                     return False, "Overflow or underflow encountered."
@@ -303,19 +274,44 @@ class RungeKutta(OdeSolver):
         self.y = y_new
 
         # stiffness detection
-        if self.nfev_stiff_detect:
-            self.okstp += 1
-            self.havg = 0.9 * self.havg + 0.1 * h          # exp moving average
-            self._diagnose_stiffness()
-
-            # reset after the first 20 steps to:
-            # - get stepsize on scale
-            # - reduce the effect of a possible initial transient
-            if self.okstp == 20:
-                self.havg = h
-                self.jflstp = 0
+        self._diagnose_stiffness()
 
         return True, None
+
+    def _reassess_stepsize(self, t, y):
+        # limit step size
+        h_abs = self.h_abs
+        min_step = max(self.h_min_a * (abs(t) + h_abs), self.h_min_b)
+        if h_abs < min_step or h_abs > self.max_step:
+            h_abs = min(self.max_step, max(min_step, h_abs))
+            self.standard_sc = True
+
+        # handle final integration steps
+        d = abs(self.t_bound - t)                     # remaining interval
+        if d < 2 * h_abs:
+            if d > h_abs:
+                # h_abs < d < 2 * h_abs: "look ahead".
+                # split d over last two steps. This reduces the chance of a
+                # very small last step.
+                h_abs = max(0.5 * d, min_step)
+                self.standard_sc = True
+            elif d >= min_step:
+                # d <= h_abs: Don't step over t_bound
+                h_abs = d
+            else:
+                # d < min_step: use linear extrapolation in this rare case
+                h = self.t_bound - t
+                y_new = y + h * self.f
+                self.h_previous = h
+                self.y_old = y
+                self.t = self.t_bound
+                self.y = y_new
+                self.f = None                      # signals _dense_output_impl
+                logging.warning(
+                    'Linear extrapolation was used in the final step.')
+                return None, min_step
+
+        return h_abs, min_step
 
     def _estimate_error(self, K, h):
         # exclude K[-1] if not FSAL. It could contain nan or inf
@@ -366,6 +362,20 @@ class RungeKutta(OdeSolver):
 
         Original source: RKSuite.f, https://www.netlib.org/ode/rksuite/
         """
+
+        if self.nfev_stiff_detect == 0:
+            return
+
+        self.okstp += 1
+        h = self.h_previous
+        self.havg = 0.9 * self.havg + 0.1 * h              # exp moving average
+
+        # reset after the first 20 steps to:
+        # - get stepsize on scale
+        # - reduce the effect of a possible initial transient
+        if self.okstp == 20:
+            self.havg = h
+            self.jflstp = 0
 
         # There are lots of failed steps (lotsfl = True) if 10 or more step
         # failures occurred in the last 40 successful steps.
