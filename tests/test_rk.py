@@ -2,10 +2,12 @@
 import pytest
 from numpy.testing import assert_allclose, assert_
 import numpy as np
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9
+import sys
+sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc]
 
 
 @pytest.mark.parametrize("solver", METHODS)

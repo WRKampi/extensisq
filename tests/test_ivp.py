@@ -11,10 +11,12 @@ from scipy.integrate import solve_ivp
 # from scipy.integrate import OdeSolution
 # from scipy.integrate._ivp.common import num_jac
 from scipy.sparse import coo_matrix, csc_matrix
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG
+import sys
+sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc]
 
 
 def fun_zero(t, y):
