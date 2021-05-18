@@ -74,7 +74,7 @@ class BS5(RungeKutta):
         Predefined parameters are:
             Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
             Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
-        The default for this method is "S".
+        The default for this method is "W".
     interpolant : 'best', 'low' or 'free', optional
         Select the interpolant for dense output. The option 'best' is for the
         accurate fifth order interpolant described in [1], which needs 3 extra
@@ -103,7 +103,7 @@ class BS5(RungeKutta):
     n_extra_stages = 3      # for dense output
     tanang = 5.2
     stbrad = 3.9
-    sc_params = "S"
+    sc_params = "W"
 
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1])
@@ -227,8 +227,6 @@ class BS5(RungeKutta):
             self.K = self.K_extended[:self.n_stages+1]
         else:
             self.K_extended = self.K
-        # y_old is used for first error assessment, it should not be None
-        self.y_old = self.y - self.direction * self.h_abs * self.f
 
     def _step_impl(self):
 
@@ -332,8 +330,9 @@ class BS5(RungeKutta):
 
     def _estimate_error_norm_pre(self, y, h):
         # first error estimate
-        # y_new is not available yet for scale, so use y_old instead
-        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(self.y_old))
+        # y_new is not available yet for scale, so use y_pre instead
+        y_pre = y + h * (self.K[:6].T @ self.A[6, :6])
+        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_pre))
         err = h * (self.K[:6, :].T @ self.E_pre)
         return norm(err / scale)
 
