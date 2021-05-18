@@ -1,5 +1,6 @@
 import numpy as np
-from extensisq.common import RungeKutta
+from extensisq.common import RungeKutta, NFS
+from scipy.integrate._ivp.rk import norm, MIN_FACTOR, MAX_FACTOR
 
 
 class CFMR7osc(RungeKutta):
@@ -149,3 +150,114 @@ class CFMR7osc(RungeKutta):
             -63469294997090000000000/14789683484982062049393],
         [0, 28487/23760, -199409/35640, 370331/47520, -199409/59400],
         [0, -2, 10, -15, 7]])
+
+    # redefine _step_impl() to save 1 evaluation for each rejected step
+    def _step_impl(self):
+        # mostly follows the scipy implementation of scipy's RungeKutta
+        t = self.t
+        y = self.y
+
+        h_abs, min_step = self._reassess_stepsize(t, y)
+        if h_abs is None:
+            # linear extrapolation for last step
+            return True, None
+
+        # loop until the step is accepted
+        step_accepted = False
+        step_rejected = False
+        while not step_accepted:
+
+            if h_abs < min_step:
+                return False, self.TOO_SMALL_STEP
+            h = h_abs * self.direction
+            t_new = t + h
+
+            # calculate stages needed for error evaluation
+            self.K[0] = self.f
+            for i in range(1, self.n_stages-1):
+                self._rk_stage(h, i)
+
+            # evaluate error with premature y_pre instead of y_new for weight
+            error_norm_pre = self._estimate_error_norm_pre(y, h)
+
+            # reject step if pre_error too large
+            if error_norm_pre > 1:
+                step_rejected = True
+                h_abs *= max(
+                    MIN_FACTOR,
+                    self.safety * error_norm_pre ** self.error_exponent)
+
+                NFS[()] += 1
+                if self.nfev_stiff_detect:
+                    self.jflstp += 1                  # for stiffness detection
+                continue
+
+            # calculate last stage needed for output
+            self._rk_stage(h, self.n_stages-1)
+
+            # calculate error norm and solution (again with proper weight)
+            y_new, error_norm = self._comp_sol_err(y, h)
+
+            # evaluate error
+            if error_norm < 1:
+                step_accepted = True
+
+                # don't trust very small error_norm values
+                error_norm = max(self.min_error_norm, error_norm)
+
+                if self.standard_sc:
+                    factor = self.safety * error_norm ** self.error_exponent
+                    self.standard_sc = False
+
+                else:
+                    # use second order SC controller
+                    h_ratio = h / self.h_previous
+                    factor = self.safety_sc * (
+                        error_norm ** self.minbeta1 *
+                        self.error_norm_old ** self.minbeta2 *
+                        h_ratio ** self.minalpha)
+                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+
+                if step_rejected:
+                    factor = min(1, factor)
+
+                h_abs *= factor
+
+            else:
+                step_rejected = True
+                h_abs *= max(MIN_FACTOR,
+                             self.safety * error_norm ** self.error_exponent)
+
+                NFS[()] += 1
+                self.jflstp += 1                      # for stiffness detection
+
+                if np.isnan(error_norm) or np.isinf(error_norm):
+                    return False, "Overflow or underflow encountered."
+
+        if not self.FSAL:
+            # evaluate ouput point for interpolation and next step
+            self.K[self.n_stages] = self.fun(t + h, y_new)
+
+        # store for next step, interpolation and stepsize control
+        self.h_previous = h
+        self.y_old = y
+        self.h_abs = h_abs
+        self.f = self.K[self.n_stages].copy()
+        self.error_norm_old = error_norm
+
+        # output
+        self.t = t_new
+        self.y = y_new
+
+        # stiffness detection
+        self._diagnose_stiffness()
+
+        return True, None
+
+    def _estimate_error_norm_pre(self, y, h):
+        # first error estimate
+        # y_new is not available yet for scale, so use y_pre instead
+        y_pre = y + h * (self.K[:8].T @ self.A[8, :8])
+        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_pre))
+        err = h * (self.K[:8, :].T @ self.E[:8])
+        return norm(err / scale)
