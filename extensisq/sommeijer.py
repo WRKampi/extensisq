@@ -212,10 +212,9 @@ class SSV2stab(OdeSolver):
             vtemp1[:] = self.fun(t + h, y)                           # evaluate
 
             # Estimate the local error and compute its weighted RMS norm.
-            # use average rather than the elementwise maximum.
-            # wt = self.atol + self.rtol * np.maximum(np.abs(y),
-            #                                         np.abs(yn))    # original
-            wt = self.atol + self.rtol * 0.5 * (np.abs(y) + np.abs(yn))   # mod
+            # original:
+            wt = self.atol + self.rtol * np.maximum(np.abs(y), np.abs(yn))
+            # wt = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(yn))   # mod
             est = 0.8 * (yn - y) + 0.4 * h * (fn + vtemp1)
             err = norm(est / wt)
 
