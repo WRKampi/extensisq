@@ -4,10 +4,11 @@ from numpy.testing import assert_allclose, assert_
 import numpy as np
 import sys
 sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc
+sys.path.append(r'C:\Users\ronal\OneDrive\Documenten\GitHub\extensisq')
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc, HE2
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc, HE2]
 
 
 @pytest.mark.parametrize("solver", METHODS)
@@ -16,27 +17,29 @@ def test_coefficient_properties(solver):
     assert_allclose(np.sum(solver.E), 0, atol=1e-15)                    # added
     assert_allclose(np.sum(solver.A, axis=1), solver.C, rtol=1e-13)
     # added tests for runge kutta interpolants. (C1 continuity)
-    Ps = np.sum(solver.P, axis=0)
-    Ps[0] -= 1
-    assert_allclose(Ps, 0,  atol=1e-12)         # C1 start
-    Ps = np.sum(solver.P, axis=1)
-    Ps[:solver.B.size] -= solver.B
-    assert_allclose(Ps, 0, atol=1e-12)          # C0 end
-    dP = solver.P * (np.arange(solver.P.shape[1]) + 1)
-    dPs = dP.sum(axis=1)
-    dPs[-1] -= 1
-    assert_allclose(dPs, 0, atol=2e-12)         # C1 end
-    # C0 start is always satisfied
+    if type(solver.P) != type(NotImplemented):
+        Ps = np.sum(solver.P, axis=0)
+        Ps[0] -= 1
+        assert_allclose(Ps, 0,  atol=1e-12)         # C1 start
+        Ps = np.sum(solver.P, axis=1)
+        Ps[:solver.B.size] -= solver.B
+        assert_allclose(Ps, 0, atol=1e-12)          # C0 end
+        dP = solver.P * (np.arange(solver.P.shape[1]) + 1)
+        dPs = dP.sum(axis=1)
+        dPs[-1] -= 1
+        assert_allclose(dPs, 0, atol=2e-12)         # C1 end
+        # C0 start is always satisfied
 
 
 @pytest.mark.parametrize("solver_class", METHODS)
 def test_error_estimation(solver_class):
-    step = 0.2
-    solver = solver_class(lambda t, y: y, 0, [1], 1, first_step=step)
-    solver.step()
-    error_estimate = solver._estimate_error(solver.K, step)
-    error = solver.y - np.exp([step])
-    assert_(np.abs(error) < np.abs(error_estimate))
+    if solver_class != HE2:
+        step = 0.2
+        solver = solver_class(lambda t, y: y, 0, [1], 1, first_step=step)
+        solver.step()
+        error_estimate = solver._estimate_error(solver.K, step)
+        error = solver.y - np.exp([step])
+        assert_(np.abs(error) < np.abs(error_estimate))
 
 
 @pytest.mark.parametrize("solver_class", METHODS)

@@ -13,10 +13,11 @@ from scipy.integrate import solve_ivp
 from scipy.sparse import coo_matrix, csc_matrix
 import sys
 sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc
+sys.path.append(r'C:\Users\ronal\OneDrive\Documenten\GitHub\extensisq')
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2]
 
 
 def fun_zero(t, y):
@@ -176,10 +177,10 @@ def test_integration(method):
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method in ['DOP853', Pr8, Pr9]:
+        if method in ['DOP853', Pr8, Pr9, HE2]:
             # DOP853 spends more functions evaluation because it doesn't
             # have enough time to develop big enough step size.
-            assert_(res.nfev < 55)  # increased
+            assert_(res.nfev < 60)  # increased
         else:
             assert res.nfev < 40
 
@@ -243,6 +244,8 @@ def test_integration_complex(method):
         if method in ['DOP853', SWAG, Pr8, Pr9]:
             print(method, res.nfev)
             assert res.nfev < 40      # increased
+        elif method == HE2:
+            assert res.nfev < 60
         else:
             print(method, res.nfev)
             assert res.nfev < 25

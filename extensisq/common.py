@@ -347,7 +347,7 @@ class RungeKutta(OdeSolver):
             # output was extrapolated linearly
             return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
 
-        if self.P == NotImplemented:
+        if type(self.P) == type(NotImplemented):
             return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
                                     self.K[0, :], self.K[-1, :])
 
