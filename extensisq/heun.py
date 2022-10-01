@@ -92,8 +92,8 @@ class HE2(RungeKutta):
     E = np.array([0.5, -0.5, 0.])
 
     # Parameters for stiffness detection, optional
-    stbrad = 2.0              # radius of the arc
-    tanang = 12.              # tan(valid angle < pi/2)
+    stbrad = 2.               # radius of the arc
+    tanang = 2.               # tan(valid angle < pi/2)
 
     # Parameters for stepsize control, optional
     sc_params = "standard"
