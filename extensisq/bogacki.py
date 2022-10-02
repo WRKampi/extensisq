@@ -1,6 +1,6 @@
 import numpy as np
 from warnings import warn
-from scipy.integrate._ivp.rk import norm, MAX_FACTOR, MIN_FACTOR
+from scipy.integrate._ivp.rk import norm
 from extensisq.common import RungeKutta, HornerDenseOutput, NFS
 
 
@@ -227,6 +227,8 @@ class BS5(RungeKutta):
             self.K = self.K_extended[:self.n_stages+1]
         else:
             self.K_extended = self.K
+        self.MIN_FACTOR = 0.5
+        self.MAX_FACTOR = 8.0                       # initially, reduced later
 
     def _step_impl(self):
 
@@ -262,7 +264,7 @@ class BS5(RungeKutta):
             if error_norm_pre > 1:
                 step_rejected = True
                 h_abs *= max(
-                    MIN_FACTOR,
+                    self.MIN_FACTOR,
                     self.safety * error_norm_pre ** self.error_exponent)
 
                 NFS[()] += 1
@@ -294,10 +296,14 @@ class BS5(RungeKutta):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
+
+                if factor < 4.0:
+                    # A resrtict step size when on scale
+                    self.MAX_FACTOR = 2.0
 
                 h_abs *= factor
 
@@ -306,7 +312,7 @@ class BS5(RungeKutta):
                     return False, "Overflow or underflow encountered."
 
                 step_rejected = True
-                h_abs *= max(MIN_FACTOR,
+                h_abs *= max(self.MIN_FACTOR,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
