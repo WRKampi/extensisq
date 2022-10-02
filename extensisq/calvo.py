@@ -112,7 +112,7 @@ class CFMR7osc(RungeKutta):
         1279328256/9538891505, 5963949/25894400, 50000000000/599799373173,
         28487/712800])
 
-    # coefficients for error estimation
+    # coefficients for error estimation, note E[-2] = 0.
     E = np.array([
         1689248233/50104356120, 0, 0, 1/4, 28320758959727/152103780259200,
         66180849792/341834007515, 31163653341/152322513280,
@@ -195,7 +195,7 @@ class CFMR7osc(RungeKutta):
             # calculate last stage needed for output
             self._rk_stage(h, self.n_stages-1)
 
-            # calculate error norm and solution (again with proper weight)
+            # calculate error norm and solution (now with proper weight)
             y_new, error_norm = self._comp_sol_err(y, h)
 
             # evaluate error

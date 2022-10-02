@@ -2,9 +2,6 @@
 import pytest
 from numpy.testing import assert_allclose, assert_
 import numpy as np
-import sys
-sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
-sys.path.append(r'C:\Users\ronal\OneDrive\Documenten\GitHub\extensisq')
 from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, CFMR7osc, HE2
 
 

@@ -302,7 +302,7 @@ class BS5(RungeKutta):
                     factor = min(1, factor)
 
                 if factor < 4.0:
-                    # A resrtict step size when on scale
+                    # A restrict step size when on scale
                     self.MAX_FACTOR = 2.0
 
                 h_abs *= factor

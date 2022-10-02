@@ -5,15 +5,8 @@ from numpy.testing import (assert_, assert_allclose,
 import pytest
 from pytest import raises as assert_raises
 import numpy as np
-# from scipy.optimize._numdiff import group_columns
-# from scipy.integrate import LSODA
 from scipy.integrate import solve_ivp
-# from scipy.integrate import OdeSolution
-# from scipy.integrate._ivp.common import num_jac
 from scipy.sparse import coo_matrix, csc_matrix
-import sys
-sys.path.append(r'C:\Users\ronal\Documents\GitHub\extensisq')
-sys.path.append(r'C:\Users\ronal\OneDrive\Documenten\GitHub\extensisq')
 from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2
 
 
