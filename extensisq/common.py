@@ -77,10 +77,10 @@ class RungeKutta(OdeSolver):
     # time fraction coefficients (nodes)
     C: np.ndarray = NotImplemented              # shape: [n_stages]
 
-    # error coefficients (weights Bh - B)
+    # error coefficients (weights Bh - B); for non-FSAL methods E[-1] == 0.
     E: np.ndarray = NotImplemented              # shape: [n_stages + 1]
 
-    # dense output interpolation coefficients
+    # dense output interpolation coefficients, optional
     P: np.ndarray = NotImplemented              # shape: [n_stages + 1,
     #                                                     order_polynomial]
 
@@ -89,7 +89,7 @@ class RungeKutta(OdeSolver):
     tanang: float = NotImplemented              # tan(valid angle < pi/2)
 
     # Parameters for stepsize control, optional
-    sc_params = NotImplemented                  # tuple, or str
+    sc_params = "standard"                      # tuple, or str
 
     def _init_min_step_parameters(self):
         """Define the parameters h_min_a and h_min_b for the min_step rule:
@@ -139,12 +139,8 @@ class RungeKutta(OdeSolver):
                  "S": (0.6, -0.2, 0, 0.9),
                  "W": (2, -1, -1, 0.8),
                  "standard": (1, 0, 0, 0.9)}
-        if self.sc_params == NotImplemented:
-            # use standard controller if not specified otherwise
-            sc_params = sc_params or "standard"
-        else:
-            # use default controller of method if not specified otherwise
-            sc_params = sc_params or self.sc_params
+        # use default controller of method if not specified otherwise
+        sc_params = sc_params or self.sc_params
         if (isinstance(sc_params, str) and sc_params in coefs):
             kb1, kb2, a, g = coefs[sc_params]
         elif isinstance(sc_params, tuple) and len(sc_params) == 4:
@@ -347,13 +343,14 @@ class RungeKutta(OdeSolver):
             # output was extrapolated linearly
             return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
 
-        if type(self.P) == type(NotImplemented):
-            return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
-                                    self.K[0, :], self.K[-1, :])
+        if isinstance(self.P, np.ndarray):
+            # normal output
+            Q = self.K.T @ self.P
+            return HornerDenseOutput(self.t_old, self.t, self.y_old, Q)
 
-        # normal output
-        Q = self.K.T @ self.P
-        return HornerDenseOutput(self.t_old, self.t, self.y_old, Q)
+        # if no interpolant is implemented
+        return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
+                                self.K[0, :], self.K[-1, :])
 
     def _diagnose_stiffness(self):
         """Stiffness detection.

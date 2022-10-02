@@ -1,5 +1,4 @@
 import numpy as np
-from warnings import warn
 from extensisq.common import RungeKutta
 
 
@@ -67,7 +66,7 @@ class HE2(RungeKutta):
             Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
         The default for this method is "standard".
     """
-    
+
     # effective number of stages
     n_stages = 2
 
@@ -94,7 +93,3 @@ class HE2(RungeKutta):
     # Parameters for stiffness detection, optional
     stbrad = 2.               # radius of the arc
     tanang = 2.               # tan(valid angle < pi/2)
-
-    # Parameters for stepsize control, optional
-    sc_params = "standard"
-

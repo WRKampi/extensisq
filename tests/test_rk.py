@@ -17,7 +17,7 @@ def test_coefficient_properties(solver):
     assert_allclose(np.sum(solver.E), 0, atol=1e-15)                    # added
     assert_allclose(np.sum(solver.A, axis=1), solver.C, rtol=1e-13)
     # added tests for runge kutta interpolants. (C1 continuity)
-    if type(solver.P) != type(NotImplemented):
+    if isinstance(solver.P, np.ndarray):
         Ps = np.sum(solver.P, axis=0)
         Ps[0] -= 1
         assert_allclose(Ps, 0,  atol=1e-12)         # C1 start
