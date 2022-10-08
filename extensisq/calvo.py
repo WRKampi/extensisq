@@ -234,9 +234,8 @@ class CFMR7osc(RungeKutta):
                 if np.isnan(error_norm) or np.isinf(error_norm):
                     return False, "Overflow or underflow encountered."
 
-        if not self.FSAL:
-            # evaluate ouput point for interpolation and next step
-            self.K[self.n_stages] = self.fun(t + h, y_new)
+        # evaluate ouput point for interpolation and next step
+        self.K[self.n_stages] = self.fun(t + h, y_new)
 
         # store for next step, interpolation and stepsize control
         self.h_previous = h
