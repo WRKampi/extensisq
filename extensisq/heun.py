@@ -6,7 +6,7 @@ class HE2(RungeKutta):
     """Heun's explicit Runge-Kutta method of order 2, with the explicit Euler
     method as error estimate of order 1 and a free interpolant of order 3.
 
-    This is the simplest embedded Runge-Kutta method.
+    This is the simplest embedded Runge-Kutta method [1]_.
 
     Can be applied in the complex domain.
 
@@ -65,6 +65,11 @@ class HE2(RungeKutta):
             Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
             Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
         The default for this method is "standard".
+
+    References
+    ----------
+    .. [1] Wikipedia:
+           https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Heun%E2%80%93Euler
     """
 
     # effective number of stages
