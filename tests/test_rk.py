@@ -30,13 +30,16 @@ def test_coefficient_properties(solver):
 
 @pytest.mark.parametrize("solver_class", METHODS)
 def test_error_estimation(solver_class):
-    if solver_class != HE2:
+    if solver_class == HE2:
+        step = 0.02
+    else:
         step = 0.2
-        solver = solver_class(lambda t, y: y, 0, [1], 1, first_step=step)
-        solver.step()
-        error_estimate = solver._estimate_error(solver.K, step)
-        error = solver.y - np.exp([step])
-        assert_(np.abs(error) < np.abs(error_estimate))
+    solver = solver_class(lambda t, y: y, 0, [1], 1, first_step=step)
+    solver.step()
+    error_estimate = solver._estimate_error(solver.K, step)
+    error = solver.y - np.exp([step])
+    print(np.abs(error) , np.abs(error_estimate))
+    assert_(np.abs(error) < np.abs(error_estimate))
 
 
 @pytest.mark.parametrize("solver_class", METHODS)
