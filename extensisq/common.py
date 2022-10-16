@@ -261,6 +261,7 @@ class RungeKutta(OdeSolver):
         self.h_previous = h
         self.y_old = y
         self.h_abs = h_abs
+        self.f_old = self.f
         self.f = self.K[self.n_stages].copy()
         self.error_norm_old = error_norm
 
@@ -350,7 +351,7 @@ class RungeKutta(OdeSolver):
 
         # if no interpolant is implemented
         return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
-                                self.K[0, :], self.K[-1, :])
+                                self.f_old, self.f)
 
     def _diagnose_stiffness(self):
         """Stiffness detection.
@@ -739,7 +740,6 @@ class LinearDenseOutput(DenseOutput):
         self.dy = (y - y_old)[:, np.newaxis]
 
     def _call_impl(self, t):
-        t = np.atleast_1d(t)
         x = (t - self.t_old) / self.h
 
         # linear interpolation
@@ -753,19 +753,36 @@ class LinearDenseOutput(DenseOutput):
             return y[:, 0]
 
 
-class CubicDenseOutput(HornerDenseOutput):
+class CubicDenseOutput(DenseOutput):
     """Cubic, C1 continuous interpolator
     """
     def __init__(self, t_old, t, y_old, y, f_old, f):
-        # transform input
-        h = t - t_old
-        dy = (y - y_old)
-        K = np.stack([f_old, dy/h, f])
-        P = np.array([[1.0, -2.0, 1.0],
-                      [0.0, 3.0, -2.0],
-                      [0.0, -1.0, 1.0]])
-        Q = K.T @ P
-        super(CubicDenseOutput, self).__init__(t_old, t, y_old, Q)
+        super(CubicDenseOutput, self).__init__(t_old, t)
+        self.h = t - t_old
+        self.y_old = y_old
+        self.f_old = f_old
+        self.y = y
+        self.f = f
+
+    def _call_impl(self, t):
+        # scaled time
+        x = (t - self.t_old) / self.h
+
+        # qubic hermite spline:
+        h00 = (1.0 + 2.0*x) * (1.0 - x)**2
+        h10 = x * (1.0 - x)**2 * self.h
+        h01 = x**2 * (3.0 - 2.0*x)
+        h11 = x**2 * (x - 1.0) * self.h
+
+        # output
+        y = (h00 * self.y_old[:, np.newaxis] + h10 * self.f_old[:, np.newaxis]
+             + h01 * self.y[:, np.newaxis] + h11 * self.f[:, np.newaxis])
+
+        # need this `if` to pass scipy's unit tests. I'm not sure why.
+        if t.shape:
+            return y
+        else:
+            return y[:, 0]
 
 
 def stiff_a(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
