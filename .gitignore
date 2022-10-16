@@ -136,3 +136,4 @@ tempCodeRunnerFile.py
 # simple local test
 test.py
 test_stiff.py
+test_dense_output.py
