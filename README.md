@@ -35,6 +35,7 @@ Borrowed from the the scipy documentation:
 Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc` and `SSV2stab`) can be used in a similar way.
 
 More examples are available as notebooks (update needed):
+0. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve-ivp.ipynb)
 1. [Duffing's equation, Bogacki Shampine method](https://github.com/WRKampi/extensisq/blob/main/docs/Bogacki_Shampine.ipynb)
 2. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
 3. [Lotka Volterra equation, all fifth order methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
