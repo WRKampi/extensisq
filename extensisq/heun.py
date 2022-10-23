@@ -98,3 +98,6 @@ class HE2(RungeKutta):
     # Parameters for stiffness detection, optional
     stbrad = 2.               # radius of the arc
     tanang = 2.               # tan(valid angle < pi/2)
+
+    # Parameters for stepsize control, optional
+    sc_params = "standard"    # tuple, or str
