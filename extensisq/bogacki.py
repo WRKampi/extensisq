@@ -150,7 +150,7 @@ class BS5(RungeKutta):
         [0, -5183640/26477681, -1/10],
         [0, 0, -1403317093/11371610250]]).T
 
-    # This is the accurate, 5th order interpolant described of [1, 2].
+    # This is the original, very accurate, 5th order interpolant of [1, 2].
     # It needs 3 extra function evaluations per step.
     Pbest = np.array([
         [0, -11513270273/3502699200, -87098480009/5254048800,
@@ -175,8 +175,8 @@ class BS5(RungeKutta):
             -1774004627/25270245, -1774004627/75810735],
         [0, 12, 59, 117, 105, 35]])
 
-    # This is an up to 12x less accurate, 5th order interpolant that needs one
-    # extra function evaluation per step, instead of three.
+    # This is an up to 12x less accurate, 5th order, low cost interpolant that
+    # needs one extra function evaluation per step, instead of three.
     Plow = np.array([
         [1, -155/36, 16441/2016, -56689/8064, 757/336],
         [0, 0, 0, 0, 0],
