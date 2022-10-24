@@ -215,6 +215,7 @@ class SSV2stab(OdeSolver):
             # original:
             wt = self.atol + self.rtol * np.maximum(np.abs(y), np.abs(yn))
             # wt = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(yn))   # mod
+            # mod performs worse, original is used.
             est = 0.8 * (yn - y) + 0.4 * h * (fn + vtemp1)
             err = norm(est / wt)
 
