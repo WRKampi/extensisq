@@ -5,12 +5,16 @@ from scipy.integrate._ivp.rk import norm, MIN_FACTOR, MAX_FACTOR
 
 class CFMR7osc(RungeKutta):
     """Explicit Runge-Kutta method of (algebraic) order 7, with an error
-    estimate of order 5 and a free interpolant of order 5.
+    estimate of order 5 and a free interpolant of (algebraic) order 5.
 
     This method by Calvo, Franco, Montijano and Randez is tuned to get a
-    dispersion order of 10 and a dissipation order of 11. This is beneficial
-    for problems with oscillating solutions. It can outperform methods of
-    higher algebraic order, such as `DOP853`, for these problems.
+    dispersion order of 10 and a dissipation order of 9. This is beneficial
+    for problems with oscillating solutions (and linear problems in general).
+    It can outperform methods of higher algebraic order, such as `DOP853`,
+    for such problems.
+
+    The interpolant that has been added is of dispersion order 6 and
+    dissipation order 7.
 
     Can be applied in the complex domain.
 
@@ -122,21 +126,23 @@ class CFMR7osc(RungeKutta):
     # coefficients for interpolation (dense output)
     # free 5th order interpolant, Optimal T620
     P = np.array([
-        [1, -71528/13013, 150536/13013, -271855/26026, 577/169],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 8062738075/1215802368, -175134488711/9118517760,
-         239158008467/12158023680, -141570163/20620800],
-        [0, 82769311/2528261120, 4237103851/1264130560,
-         -28286641717/5056522240, 18291099/7462400],
-        [0, -346042368/173434391, 17578377216/1907778301,
-         -2041638912/173434391, 667312128/142371515],
-        [0, 2630961/5696768, -49577103/14241920,
-         54755919/8138240, -3217077/924800],
-        [0, 2566000000000/2199264368301, -38606000000000/6597793104903,
-         2708000000000/314180624043, -10000000000/2596534083],
-        [0, 28487/23760, -199409/35640, 370331/47520, -199409/59400],
-        [0, -2, 10, -15, 7]])
+        [1, -6248/1183, 12056/1183, -1345/182, 97/169, 160/169],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 661103345/110527488, -12471420661/828956160,
+         11535693337/1105274880, 2373818279/1381593600, -823543/287832],
+        [0, 39338391/20894720, -975441759/114920960, 9504105153/459683840,
+         -1803301911/82086400, 417605/51304],
+        [0, -7599771648/1907778301, 41855533056/1907778301,
+         -5870997504/146752177, 295068082176/9538891505,
+         -1517322240/173434391],
+        [0, 684531/517888, -11632653/1294720, 14012109/739840,
+         -13714677/924800, 2187/578],
+        [0, 16000000000/18175738581, -2410000000000/599799373173,
+         10000000000/2197067301, -2000000000/28561874913,
+         -4000000000/3173541657],
+        [0, 28487/23760, -199409/35640, 370331/47520, -199409/59400, 0],
+        [0, -2, 10, -15, 7, 0]])
 
     # redefine _step_impl() to save 1 evaluation for each rejected step
     def _step_impl(self):
