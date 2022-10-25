@@ -7,10 +7,10 @@ from pytest import raises as assert_raises
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.sparse import coo_matrix, csc_matrix
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2, Me4
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2, Me4]
 
 
 def fun_zero(t, y):
