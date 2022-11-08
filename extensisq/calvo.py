@@ -1,6 +1,6 @@
 import numpy as np
-from extensisq.common import RungeKutta, NFS
-from scipy.integrate._ivp.rk import norm, MIN_FACTOR, MAX_FACTOR
+from extensisq.common import (
+    RungeKutta, NFS, norm, MAX_FACTOR, MAX_FACTOR_SWITCH, calculate_scale)
 
 
 class CFMR7osc(RungeKutta):
@@ -177,7 +177,7 @@ class CFMR7osc(RungeKutta):
             if error_norm_pre > 1:
                 step_rejected = True
                 h_abs *= max(
-                    MIN_FACTOR,
+                    self.MIN_FACTOR,
                     self.safety * error_norm_pre ** self.error_exponent)
 
                 NFS[()] += 1
@@ -195,9 +195,6 @@ class CFMR7osc(RungeKutta):
             if error_norm < 1:
                 step_accepted = True
 
-                # don't trust very small error_norm values
-                error_norm = max(self.min_error_norm, error_norm)
-
                 if self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
@@ -209,16 +206,20 @@ class CFMR7osc(RungeKutta):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
 
                 h_abs *= factor
 
+                if factor < MAX_FACTOR_SWITCH:
+                    # reduce MAX_FACTOR when on scale.
+                    self.MAX_FACTOR = MAX_FACTOR
+
             else:
                 step_rejected = True
-                h_abs *= max(MIN_FACTOR,
+                h_abs *= max(self.MIN_FACTOR,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
@@ -250,6 +251,6 @@ class CFMR7osc(RungeKutta):
         # first error estimate
         # y_new is not available yet for scale, so use y_pre instead
         y_pre = y + h * (self.K[:8].T @ self.A[8, :8])
-        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_pre))
+        scale = calculate_scale(self.atol, self.rtol, y, y_pre)
         err = h * (self.K[:8, :].T @ self.E[:8])
         return norm(err / scale)

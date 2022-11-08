@@ -1,5 +1,4 @@
 import numpy as np
-from warnings import warn
 from extensisq.common import RungeKutta
 
 
@@ -736,22 +735,3 @@ class Pr9(RungeKutta):
             -7.86288962134219494870125843802E1,
             2.70849507236009171823909477318E1],
     ])
-
-
-# old class names
-class Pri6(Pr7):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'Pr7'.", FutureWarning)
-        super(Pri6, self).__init__(*args, **kwargs)
-
-
-class Pri7(Pr8):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'Pr8'.", FutureWarning)
-        super(Pri7, self).__init__(*args, **kwargs)
-
-
-class Pri8(Pr9):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'Pr9'.", FutureWarning)
-        super(Pri8, self).__init__(*args, **kwargs)

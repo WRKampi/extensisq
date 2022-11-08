@@ -1,8 +1,6 @@
 import numpy as np
-from warnings import warn
-from scipy.integrate._ivp.rk import norm
-from extensisq.common import (
-    RungeKutta, HornerDenseOutput, CubicDenseOutput, LinearDenseOutput, NFS)
+from extensisq.common import (RungeKutta, HornerDenseOutput, CubicDenseOutput,
+                              LinearDenseOutput, NFS, calculate_scale, norm)
 
 
 SAFETY = 0.9
@@ -407,7 +405,7 @@ class CKdisc(RungeKutta):
     def _comp_sol_err_tol(self, h, B, E, i=6):
         sol = self._compute_solution(h, B, i)
         err = self._compute_error(h, E, i)
-        tol = self.atol + self.rtol * 0.5*(np.abs(self.y) + np.abs(sol))
+        tol = calculate_scale(self.atol, self.rtol, self.y, sol)
         return sol, err, tol
 
     def _dense_output_impl(self):
@@ -422,16 +420,3 @@ class CKdisc(RungeKutta):
         # low order solution
         return CubicDenseOutput(self.t_old, self.t, self.y_old, self.y,
                                 self.K[0, :], self.K[-1, :])
-
-
-# old class names
-class CK45_o(CK5):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'CK5'.", FutureWarning)
-        super(CK45_o, self).__init__(*args, **kwargs)
-
-
-class CK45(CKdisc):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'CKdisc'.", FutureWarning)
-        super(CK45, self).__init__(*args, **kwargs)

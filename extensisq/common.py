@@ -5,9 +5,13 @@ import logging
 from scipy.integrate._ivp.common import (
     validate_max_step, norm, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from scipy.integrate._ivp.rk import MIN_FACTOR, MAX_FACTOR
+# from scipy.integrate._ivp.rk import MIN_FACTOR, MAX_FACTOR
 
 
+MIN_FACTOR = 0.5
+MAX_FACTOR = 2.0
+MAX_FACTOR_SWITCH = 4.0
+MAX_FACTOR0 = 8.0
 NFS = np.array(0)                                         # failed step counter
 
 
@@ -36,6 +40,13 @@ def validate_tol(rtol, atol, y):
     epsneg = np.finfo(y.dtype).epsneg
     rtol = np.minimum(np.maximum(rtol, 10 * epsneg), 0.01)
     return rtol, atol
+
+
+def calculate_scale(atol, rtol, y, y_new):
+    """calculate a scaling vector for the error estimate"""
+    return atol + rtol * np.maximum(np.abs(y), np.abs(y_new))
+    # the other popular option is:
+    # return atol + rtol * 0.5*(np.abs(y) + np.abs(y_new))
 
 
 class RungeKutta(OdeSolver):
@@ -90,6 +101,9 @@ class RungeKutta(OdeSolver):
 
     # Parameters for stepsize control, optional
     sc_params = "standard"                      # tuple, or str
+
+    MAX_FACTOR = MAX_FACTOR0                    # initially
+    MIN_FACTOR = MIN_FACTOR
 
     def _init_min_step_parameters(self):
         """Define the parameters h_min_a and h_min_b for the min_step rule:
@@ -154,7 +168,6 @@ class RungeKutta(OdeSolver):
         self.minalpha = -a
         self.safety = g
         self.safety_sc = g ** (kb1 + kb2)
-        self.min_error_norm = (MAX_FACTOR/g) ** (1/self.error_exponent)
         self.standard_sc = True                                # for first step
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
@@ -221,9 +234,6 @@ class RungeKutta(OdeSolver):
             if error_norm < 1:
                 step_accepted = True
 
-                # don't trust very small error_norm values
-                error_norm = max(self.min_error_norm, error_norm)
-
                 if self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
@@ -235,16 +245,20 @@ class RungeKutta(OdeSolver):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(MAX_FACTOR, max(MIN_FACTOR, factor))
+                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
 
                 h_abs *= factor
 
+                if factor < MAX_FACTOR_SWITCH:
+                    # reduce MAX_FACTOR when on scale.
+                    self.MAX_FACTOR = MAX_FACTOR
+
             else:
                 step_rejected = True
-                h_abs *= max(MIN_FACTOR,
+                h_abs *= max(self.MIN_FACTOR,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
@@ -323,7 +337,7 @@ class RungeKutta(OdeSolver):
         the maximum of abs(y) of the current and previous steps is used.
         """
         y_new = y + h * (self.K[:self.n_stages].T @ self.B)
-        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_new))
+        scale = calculate_scale(self.atol, self.rtol, y, y_new)
 
         if self.FSAL:
             # do FSAL evaluation if needed for error estimate

@@ -1,7 +1,6 @@
 import numpy as np
-from warnings import warn
-from scipy.integrate._ivp.rk import norm
-from extensisq.common import RungeKutta, HornerDenseOutput, NFS
+from extensisq.common import (norm, MAX_FACTOR, MAX_FACTOR_SWITCH, RungeKutta,
+                              HornerDenseOutput, NFS, calculate_scale)
 
 
 class BS5(RungeKutta):
@@ -227,8 +226,6 @@ class BS5(RungeKutta):
             self.K = self.K_extended[:self.n_stages+1]
         else:
             self.K_extended = self.K
-        self.MIN_FACTOR = 0.5
-        self.MAX_FACTOR = 8.0                       # initially, reduced later
 
     def _step_impl(self):
 
@@ -282,9 +279,6 @@ class BS5(RungeKutta):
             if error_norm < 1:
                 step_accepted = True
 
-                # don't trust very small error_norm values
-                error_norm = max(self.min_error_norm, error_norm)
-
                 if self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
@@ -301,11 +295,11 @@ class BS5(RungeKutta):
                 if step_rejected:
                     factor = min(1, factor)
 
-                if factor < 4.0:
-                    # A restrict step size when on scale
-                    self.MAX_FACTOR = 2.0
-
                 h_abs *= factor
+
+                if factor < MAX_FACTOR_SWITCH:
+                    # reduce MAX_FACTOR when on scale.
+                    self.MAX_FACTOR = MAX_FACTOR
 
             else:
                 if np.isnan(error_norm) or np.isinf(error_norm):
@@ -338,7 +332,7 @@ class BS5(RungeKutta):
         # first error estimate
         # y_new is not available yet for scale, so use y_pre instead
         y_pre = y + h * (self.K[:6].T @ self.A[6, :6])
-        scale = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(y_pre))
+        scale = calculate_scale(self.atol, self.rtol, y, y_pre)
         err = h * (self.K[:6, :].T @ self.E_pre)
         return norm(err / scale)
 
@@ -388,20 +382,3 @@ class BS5(RungeKutta):
         # back from the end of the step instead of forward from the start.
         # The call is modified to accomodate:
         return HornerDenseOutput(self.t, self.t+h, self.y, Q)
-
-
-# old class names
-class BS45_i(BS5):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'BS5'. "
-             "Its option 'interpolant' selects the interpolant",
-             FutureWarning)
-        super(BS45_i, self).__init__(*args, **kwargs, interpolant="free")
-
-
-class BS45(BS5):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'BS5'. "
-             "Its option 'interpolant' selects the interpolant",
-             FutureWarning)
-        super(BS45, self).__init__(*args, **kwargs, interpolant="best")

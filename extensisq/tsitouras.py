@@ -1,5 +1,4 @@
 import numpy as np
-from warnings import warn
 from extensisq.common import RungeKutta
 
 
@@ -119,10 +118,3 @@ class Ts5(RungeKutta):
         [0, 37.50931341651104, -88.1789048947664, 47.37952196281928],
         [0, -27.896526289197286, 65.09189467479368, -34.87065786149661],
         [0, 1.5, -4.0, 2.5]])
-
-
-# old class names
-class Ts45(Ts5):
-    def __init__(self, *args, **kwargs):
-        warn("This method will be replaced by 'Ts5'.", FutureWarning)
-        super(Ts45, self).__init__(*args, **kwargs)
