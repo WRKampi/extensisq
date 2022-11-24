@@ -234,7 +234,10 @@ class RungeKutta(OdeSolver):
             if error_norm < 1:
                 step_accepted = True
 
-                if self.standard_sc:
+                if error_norm == 0.:
+                    factor = self.MAX_FACTOR
+
+                elif self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
                     self.standard_sc = False
 
