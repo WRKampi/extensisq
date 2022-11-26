@@ -64,7 +64,6 @@ class RungeKutta(OdeSolver):
         - look ahead to prevent too small step sizes
         - linear extrapolation if the last step is too small despite it.
       - the min_step accounts for the distance between C-values
-      - the scale (weight) is smoothed differently
       - a different tolerance validation is used.
       - stiffness detection is added, can be turned off
       - second order stepsize control is added.
