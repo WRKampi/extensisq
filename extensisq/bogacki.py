@@ -124,9 +124,12 @@ class BS5(RungeKutta):
                   387/44800, 2152/5985, 7267/94080])
 
     # coefficients for first error estimation method
+    # this is actually the main error estimator
     E_pre = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95])
 
-    # coefficients for main error estimation method
+    # coefficients for post error estimation method
+    # this can account for sudden changes above c=3/4, which the main error
+    # estimate cannot.
     E = np.array([2479/34992, 0, 123/416, 612941/3411720, 43/1440,
                   2272/6561, 79937/1113912, 3293/556956])
     E[:-1] -= B     # convert to error coefficients
