@@ -151,9 +151,6 @@ class CFMR7osc(RungeKutta):
         y = self.y
 
         h_abs, min_step = self._reassess_stepsize(t, y)
-        if h_abs is None:
-            # linear extrapolation for last step
-            return True, None
 
         # loop until the step is accepted
         step_accepted = False

@@ -2,7 +2,7 @@ import numpy as np
 from warnings import warn
 from math import copysign, sqrt
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from extensisq.common import h_start, LinearDenseOutput, validate_tol, NFS
+from extensisq.common import h_start, validate_tol, NFS
 from scipy.integrate._ivp.common import (
     validate_max_step, norm, warn_extraneous, validate_first_step)
 
@@ -585,8 +585,32 @@ class SwagDenseOutput(DenseOutput):
             yout_array[:, it] = yout
             # ypout_array[:, it] = ypout                                # prime
 
-        # need this if to pass scipy's unit tests.
         if t.shape:
             return yout_array
         else:
             return yout_array[:, 0]
+
+
+class LinearDenseOutput(DenseOutput):
+    """Linear interpolator.
+
+    This class can be used if the output was obtained by extrapolation (if the
+    end point was too close to perform a normal integration step).
+    """
+    def __init__(self, t_old, t, y_old, y):
+        super(LinearDenseOutput, self).__init__(t_old, t)
+        self.h = t - t_old
+        self.y_old = y_old[:, np.newaxis]
+        self.dy = (y - y_old)[:, np.newaxis]
+
+    def _call_impl(self, t):
+        x = (t - self.t_old) / self.h
+
+        # linear interpolation
+        y = x * self.dy
+        y += self.y_old
+
+        if t.shape:
+            return y
+        else:
+            return y[:, 0]

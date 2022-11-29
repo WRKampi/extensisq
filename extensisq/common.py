@@ -62,7 +62,6 @@ class RungeKutta(OdeSolver):
       - A failed step counter is added.
       - The stepsize near the end of the integration is different:
         - look ahead to prevent too small step sizes
-        - linear extrapolation if the last step is too small despite it.
       - the min_step accounts for the distance between C-values
       - a different tolerance validation is used.
       - stiffness detection is added, can be turned off
@@ -207,9 +206,6 @@ class RungeKutta(OdeSolver):
         y = self.y
 
         h_abs, min_step = self._reassess_stepsize(t, y)
-        if h_abs is None:
-            # linear extrapolation for last step
-            return True, None
 
         # loop until the step is accepted
         step_accepted = False
@@ -307,21 +303,9 @@ class RungeKutta(OdeSolver):
                 # very small last step.
                 h_abs = max(0.5 * d, min_step)
                 self.standard_sc = True
-            elif d >= min_step:
+            else:
                 # d <= h_abs: Don't step over t_bound
                 h_abs = d
-            else:
-                # d < min_step: use linear extrapolation in this rare case
-                h = self.t_bound - t
-                y_new = y + h * self.f
-                self.h_previous = h
-                self.y_old = y
-                self.t = self.t_bound
-                self.y = y_new
-                self.f = None                      # signals _dense_output_impl
-                logging.warning(
-                    'Linear extrapolation was used in the final step.')
-                return None, min_step
 
         return h_abs, min_step
 
@@ -355,10 +339,6 @@ class RungeKutta(OdeSolver):
 
     def _dense_output_impl(self):
         """return denseOutput, detect if step was extrapolated linearly"""
-
-        if self.f is None:
-            # output was extrapolated linearly
-            return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
 
         if isinstance(self.P, np.ndarray):
             # normal output
@@ -736,33 +716,6 @@ class HornerDenseOutput(DenseOutput):
             y *= x
         y += self.y_old[:, np.newaxis]
 
-        # need this `if` to pass scipy's unit tests. I'm not sure why.
-        if t.shape:
-            return y
-        else:
-            return y[:, 0]
-
-
-class LinearDenseOutput(DenseOutput):
-    """Linear interpolator.
-
-    This class can be used if the output was obtained by extrapolation (if the
-    end point was too close to perform a normal integration step).
-    """
-    def __init__(self, t_old, t, y_old, y):
-        super(LinearDenseOutput, self).__init__(t_old, t)
-        self.h = t - t_old
-        self.y_old = y_old[:, np.newaxis]
-        self.dy = (y - y_old)[:, np.newaxis]
-
-    def _call_impl(self, t):
-        x = (t - self.t_old) / self.h
-
-        # linear interpolation
-        y = x * self.dy
-        y += self.y_old
-
-        # need this `if` to pass scipy's unit tests. I'm not sure why.
         if t.shape:
             return y
         else:
@@ -794,7 +747,6 @@ class CubicDenseOutput(DenseOutput):
         y = (h00 * self.y_old[:, np.newaxis] + h10 * self.f_old[:, np.newaxis]
              + h01 * self.y[:, np.newaxis] + h11 * self.f[:, np.newaxis])
 
-        # need this `if` to pass scipy's unit tests. I'm not sure why.
         if t.shape:
             return y
         else:

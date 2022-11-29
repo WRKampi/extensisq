@@ -1,6 +1,6 @@
 import numpy as np
 from extensisq.common import (RungeKutta, HornerDenseOutput, CubicDenseOutput,
-                              LinearDenseOutput, NFS, calculate_scale, norm)
+                              NFS, calculate_scale, norm)
 
 
 SAFETY = 0.9
@@ -257,9 +257,6 @@ class CKdisc(RungeKutta):
         quit = self.quit
 
         h_abs, min_step = self._reassess_stepsize(t, y)
-        if h_abs is None:
-            # linear extrapolation for last step
-            return True, None
 
         order_accepted = 0
         step_rejected = False
@@ -409,9 +406,6 @@ class CKdisc(RungeKutta):
         return sol, err, tol
 
     def _dense_output_impl(self):
-        if self.f is None:
-            # output was extrapolated linearly
-            return LinearDenseOutput(self.t_old, self.t, self.y_old, self.y)
         # select interpolator based on order of the accepted error (solution)
         if self.order_accepted == 4:
             # 4th order error estimate accepted (5th order solution)
