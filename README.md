@@ -37,8 +37,8 @@ Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. Th
 More examples are available as notebooks (update needed):
 1. [Integration with Scipy's `solve_ivp` function](docs/Demo_solve_ivp.ipynb)
 2. [About `BS5` and its interpolants](docs/Demo_BS5.ipynb)
-3. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
-4. [Lotka Volterra equation, all fifth order methods](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
+3. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
+4. [Non-smooth problem, Cash Karp method](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
 5. [Riccati equation, higher order Prince methods](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
 6. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
