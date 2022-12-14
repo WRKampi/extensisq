@@ -2,7 +2,7 @@ import numpy as np
 from warnings import warn
 from math import copysign, sqrt
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from extensisq.common import h_start, validate_tol, NFS
+from extensisq.common import h_start, validate_tol, NFS, calculate_scale
 from scipy.integrate._ivp.common import (
     validate_max_step, norm, warn_extraneous, validate_first_step)
 
@@ -127,7 +127,7 @@ class SWAG(OdeSolver):
         self.gstr = (0.5, 0.0833, 0.0417, 0.0264, 0.0188, 0.0143, 0.0114,
                      0.00936, 0.00789, 0.00679, 0.00592, 0.00524, 0.00468)
         self.iq = np.arange(1, k_max + 2, dtype=float)
-        self.iqq = 1.0 / (self.iq * (self.iq + 1))                      # added
+        self.iqq = 1.0 / (self.iq * (self.iq + 1.0))                    # added
         self.k_max = k_max                                              # added
         self.eps = 1.0                                       # tolerances in wt
         self.p5eps = 0.5                                     # tolerances in wt
@@ -146,8 +146,8 @@ class SWAG(OdeSolver):
 
         # Tolerances are dealt with like in scipy: wt is like scipy's scale
         # and will be update each step.  This is only the initial value:
-        self.wt = self.atol + self.rtol * 0.5*(
-            np.abs(self.y) + np.abs(self.y - self.h*self.yp))
+        self.wt = calculate_scale(self.atol, self.rtol, self.y,
+                                  self.y - self.h*self.yp)
 
         # initialization
         # from  *** block 0 ***  of dsteps.f, under IF START:
@@ -336,7 +336,7 @@ class SWAG(OdeSolver):
             yp[:] = self.fun(x, p)                                   # evaluate
 
             # added update of wt:
-            wt[:] = self.atol + self.rtol * 0.5*(np.abs(p) + np.abs(y))
+            wt[:] = calculate_scale(self.atol, self.rtol, p, y)
 
             # estimate errors at orders k, k-1, k-2
             temp3 = 1.0 / wt
