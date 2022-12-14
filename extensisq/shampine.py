@@ -261,16 +261,12 @@ class SWAG(OdeSolver):
                 nsm1 = ns - 1                                           # added
                 psi_old = psi[nsm1:km1].copy()                          # added
                 psi[nsm1] = h * ns
+                psi[ns:k] = h + psi_old
                 alpha[nsm1] = 1.0 / ns
+                alpha[ns:k] = h / psi[ns:k]
                 beta[nsm1] = 1.0
-                sig[ns] = 1.0
-                for i, temp2 in enumerate(psi_old, start=ns):
-                    temp1 = h + temp2
-                    alp = h / temp1                                     # added
-                    psi[i] = temp1
-                    alpha[i] = alp
-                    beta[i] = beta[i-1] * psi[i-1] / temp2
-                    sig[i+1] = (i + 1) * alp * sig[i]
+                beta[ns:k] = np.cumprod(psi[nsm1:km1] / psi_old)
+                sig[ns:kp1] = np.cumprod(np.arange(ns, kp1) * alpha[nsm1:k])
 
                 # compute coefficients g(*)
 
@@ -333,8 +329,7 @@ class SWAG(OdeSolver):
             phi[:, kp1] = phi[:, k]
             phi[:, k] = 0.0
             p = h * (phi[:, :k] @ g[:k]) + y
-            for i in range(k, 0, -1):
-                phi[:, i-1] += phi[:, i]
+            phi[:, km1::-1] = np.cumsum(phi[:, km1::-1], axis=1)
             xold = x
             x += h
             absh = abs(h)
@@ -517,7 +512,8 @@ class SwagDenseOutput(DenseOutput):
                 gdi = ow[iw-1]
                 m = kold - iw + 2
             for i in range(m, kold):
-                gdi = ow[kold-i] - alpha[i] * gdi
+                gdi *= -alpha[i]
+                gdi += ow[kold-i]
         # and gdif, vector here, scalar in original code
         gdif = np.diff(og[:kold+1], prepend=0.0)                          # vec
 
