@@ -126,7 +126,7 @@ class SWAG(OdeSolver):
                     1024.0, 2048.0, 4096.0, 8192.0)
         self.gstr = (0.5, 0.0833, 0.0417, 0.0264, 0.0188, 0.0143, 0.0114,
                      0.00936, 0.00789, 0.00679, 0.00592, 0.00524, 0.00468)
-        self.iq = np.arange(1, k_max + 2)
+        self.iq = np.arange(1, k_max + 2, dtype=float)
         self.iqq = 1.0 / (self.iq * (self.iq + 1))                      # added
         self.k_max = k_max                                              # added
         self.eps = 1.0                                       # tolerances in wt
