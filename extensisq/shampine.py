@@ -2,9 +2,9 @@ import numpy as np
 from warnings import warn
 from math import copysign, sqrt
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-from extensisq.common import h_start, validate_tol, NFS, calculate_scale
+from extensisq.common import h_start, validate_tol, NFS, calculate_scale, norm
 from scipy.integrate._ivp.common import (
-    validate_max_step, norm, warn_extraneous, validate_first_step)
+    validate_max_step, warn_extraneous, validate_first_step)
 
 
 class SWAG(OdeSolver):

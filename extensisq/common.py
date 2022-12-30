@@ -3,7 +3,7 @@ from math import sqrt, copysign
 from warnings import warn
 import logging
 from scipy.integrate._ivp.common import (
-    validate_max_step, norm, validate_first_step, warn_extraneous)
+    validate_max_step, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
 # from scipy.integrate._ivp.rk import MIN_FACTOR, MAX_FACTOR
 
@@ -47,6 +47,11 @@ def calculate_scale(atol, rtol, y, y_new):
     return atol + rtol * np.maximum(np.abs(y), np.abs(y_new))
     # the other popular option is:
     # return atol + rtol * 0.5*(np.abs(y) + np.abs(y_new))
+
+
+def norm(x):
+    """Compute RMS norm."""
+    return (np.real(x @ x.conjugate()) / x.size) ** 0.5
 
 
 class RungeKutta(OdeSolver):
