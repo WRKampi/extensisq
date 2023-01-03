@@ -11,6 +11,8 @@ from extensisq.shampine import SWAG
 from extensisq.calvo import CFMR7osc
 from extensisq.sommeijer import SSV2stab
 from extensisq.merson import Me4
+from extensisq.sensitivity import (sensitivity, sensitivity_y0, 
+                                   find_periodic_solution)
 
 __version__ = '0.3.1'
 __author__ = 'W.R. Kampinga'

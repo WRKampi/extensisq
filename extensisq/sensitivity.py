@@ -117,10 +117,10 @@ def sensitivity(fun, t_span, y0, jac, B, dfdB, dy0dB, method=BS5, **options):
     assert y0.size == psi0.size, \
         "`dy0dB` should have the same size as `y0`"
     assert isinstance(B, float) or isinstance(B, int), \
-        f'B should be a float, not {type(B)}'
+        f'`B` should be a float, not {type(B)}'
     t0 = t_span[0]
     if method in ("Radau", "BDF", "LSODA"):
-        warn("sensitivity_y0 may not work with implicit methods")
+        warn("`sensitivity` may not work with implicit methods")
     if options.pop("vectorized", False):
         warn("Vectorization is not supported and is switched off")
 
@@ -140,7 +140,7 @@ def sensitivity(fun, t_span, y0, jac, B, dfdB, dy0dB, method=BS5, **options):
     total_y0 = np.concatenate([y0, psi0])
     sol = solve_ivp(total_fun, t_span, total_y0, args=(B,), method=method,
                     **options)
-    assert sol.success, "solver not converged"
+    assert sol.success, "IVP solver not converged"
 
     # output sensitivity at end of integration
     yf = sol.y[:N, -1]
@@ -204,7 +204,7 @@ def sensitivity_y0(fun, t_span, y0, jac, method=BS5, **options):
     assert y0.ndim == 1, "`y0` should be a 1d array"
     t0 = t_span[0]
     if method in ("Radau", "BDF", "LSODA"):
-        warn("sensitivity_y0 may not work with implicit methods")
+        warn("`sensitivity_y0` may not work with implicit methods")
     if options.pop("vectorized", False):
         warn("Vectorization is not supported and is switched off")
 
@@ -222,7 +222,7 @@ def sensitivity_y0(fun, t_span, y0, jac, method=BS5, **options):
 
     total_y0 = np.concatenate([y0, psi0.reshape(-1)])
     sol = solve_ivp(total_fun, t_span, total_y0, method=method, **options)
-    assert sol.success, f"solver not converged; {sol.message}"
+    assert sol.success, f"IVP solver not converged; {sol.message}"
 
     # output sollution and sensitivity at end of integration
     sens = sol.y[N:, -1].reshape(N, N)
@@ -344,138 +344,3 @@ def find_periodic_solution(fun, t_span, y0, jac, atol=1e-6, rtol=1e-3,
 
     return OptimizeResult(opt_y0=y0, opt_success=success,
                           opt_residual=residual, opt_nit=it, **sol)
-
-
-if __name__ == "__main__":
-    """Example from Hairer with Brusselator problem.
-    Compare figure 6.5 on page 201."""
-    import matplotlib.pyplot as plt
-    from math import sin
-    from extensisq import CFMR7osc
-
-    def fun(x, y, B):
-        y1, y2 = y
-        dy1 = 1 + y1**2 * y2 - (B + 1) * y1
-        dy2 = B * y1 - y1**2 * y2
-        return [dy1, dy2]
-
-    def jac(x, y, B):
-        y1, y2 = y
-        df1dy1 = 2 * y1 * y2 - (B + 1)
-        df1dy2 = y1**2
-        df2dy1 = B - 2 * y1 * y2
-        df2dy2 = -y1**2
-        return [[df1dy1, df1dy2], [df2dy1, df2dy2]]
-
-    def dfdB(x, y, B):
-        y1, y2 = y
-        df1dB = -y1
-        df2dB = y1
-        return [df1dB, df2dB]
-
-    t_span = [0., 20.]
-    results = []
-    Bs = np.linspace(2.88, 3.08, 20)
-    for B in Bs:
-        y0 = [1.3, B]
-        dy0dB = [0., 1.]
-        sens, _, _ = sensitivity(fun, t_span, y0, jac, B, dfdB, dy0dB)
-        results.append(sens)
-    results = np.asarray(results)
-
-    plt.plot(Bs, results, '.:')
-    plt.grid()
-    plt.xlim(Bs[0], Bs[-1])
-    plt.xlabel("parameter B")
-    plt.ylabel("sensitivity dy/dB")
-    plt.legend(("dy[0]/dB", "dy[1]/dB"))
-    plt.show()
-
-    # test 2
-    # test sensitivity for initial conditions
-    S0, _, _ = sensitivity_y0(fun, t_span, y0, jac, args=(B, ))
-    print(S0)
-
-    # validate with `sensitivity` method
-    def dfdB(x, y, B):
-        return [0., 0.]
-    dy0dB = [1., 0.]
-    sens0, _, _ = sensitivity(fun, t_span, y0, jac, B, dfdB, dy0dB)
-    dy0dB = [0., 1.]
-    sens1, _, _ = sensitivity(fun, t_span, y0, jac, B, dfdB, dy0dB)
-    sens = np.stack((sens0, sens1)).T
-    print(sens)   # quite close
-
-    # test 3
-    # test periodic solution finder
-    # turn into notebook and remove later
-
-    def fun(t, y, alpha, beta, gamma, delta, omega):
-        return [y[1],
-                -delta*y[1] - beta*y[0]**3 - alpha*y[0] + gamma*sin(omega*t)]
-
-    def jac(t, y, alpha, beta, gamma, delta, omega):
-        return [[0, 1],
-                [-3*beta*y[0]**2 - alpha, -delta]]
-
-    # duffing coefficients
-    alpha = 1.          # linear spring constant
-    beta = -1/6         # cubic spring constant
-    gamma = 4.          # excitation amplitude
-    delta = 0.          # damping constant
-    omega = 2.78535     # excitation frequency (angular)
-    args = (alpha, beta, gamma, delta, omega)
-
-    T = 2*np.pi/omega   # excitation period
-    print('T', T)
-
-    t_span = [0, 100]   # long interval to find periodicity
-    t_eval = np.arange(*t_span, T)  # output each excitation period
-    y0 = [0., -2.6]     # initial guess for periodic solution
-    sol = solve_ivp(fun, t_span, y0, args=args, dense_output=True,
-                    t_eval=t_eval, method=BS5, interpolant='free')
-
-    t = np.linspace(50, 100, 10000)
-    plt.plot(*sol.sol(t))
-    plt.plot(*sol.y, '.')
-    plt.show()    # 1/3 subharmonic is found
-
-    tp = np.linspace(100-3*T, 100, 500)
-    plt.close('all')
-    plt.plot(tp, sol.sol(tp).T)
-    plt.grid()
-    plt.show()
-
-    # find initial values for periodic solution
-    sol2 = find_periodic_solution(fun, [0, 3*T], y0, jac, args=args,
-                                  method=CFMR7osc, dense_output=True)
-    print(sol2.opt_success, sol2.opt_nit, sol2.opt_y0)
-
-    tp = np.linspace(0, 3*T, 1000)
-    plt.plot(sol2.sol(tp)[0, :], sol2.sol(tp)[1, :])
-    plt.plot(sol2.y[0, :], sol2.y[1, :], 'C0.')
-    plt.show()
-
-    # same equation, different initial value, different periodic solution
-    y0 = [0., -1.4]     # initial guess for periodic solution
-    sol = solve_ivp(fun, t_span, y0, args=args, dense_output=True,
-                    t_eval=t_eval, method=BS5, interpolant='free')
-
-    plt.plot(*sol.sol(t))
-    plt.plot(*sol.y, '.')
-    plt.show()    # no subharmonic is found
-
-    tp = np.linspace(100-T, 100, 500)
-    plt.close('all')
-    plt.plot(tp, sol.sol(tp).T)
-    plt.grid()
-    plt.show()
-
-    sol2 = find_periodic_solution(fun, [0, T], y0, jac, args=args,
-                                  method=CFMR7osc, dense_output=True)
-    print(sol2.opt_success, sol2.opt_nit, sol2.opt_y0)
-
-    tp = np.linspace(0, T, 500)
-    plt.plot(sol2.sol(tp)[0, :], sol2.sol(tp)[1, :])
-    plt.plot(sol2.y[0, :], sol2.y[1, :], 'C0.')
-    plt.show()
