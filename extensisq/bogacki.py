@@ -1,6 +1,6 @@
 import numpy as np
-from extensisq.common import (norm, MAX_FACTOR, MAX_FACTOR_SWITCH, RungeKutta,
-                              HornerDenseOutput, NFS, calculate_scale)
+from extensisq.common import (norm, RungeKutta, HornerDenseOutput, NFS,
+                              calculate_scale, MAX_FACTOR)
 
 
 class BS5(RungeKutta):
@@ -211,7 +211,7 @@ class BS5(RungeKutta):
 
     def __init__(self, fun, t0, y0, t_bound, nfev_stiff_detect=5000,
                  sc_params='standard', interpolant='low', **extraneous):
-        super(BS5, self).__init__(
+        super().__init__(
             fun, t0, y0, t_bound, nfev_stiff_detect=nfev_stiff_detect,
             sc_params=sc_params, **extraneous)
         # custom initialization to create extended storage for dense output
@@ -261,7 +261,7 @@ class BS5(RungeKutta):
             if error_norm_pre > 1:
                 step_rejected = True
                 h_abs *= max(
-                    self.MIN_FACTOR,
+                    self.min_factor,
                     self.safety * error_norm_pre ** self.error_exponent)
 
                 NFS[()] += 1
@@ -279,8 +279,9 @@ class BS5(RungeKutta):
             if error_norm < 1:
                 step_accepted = True
 
-                if error_norm == 0.:
-                    factor = self.MAX_FACTOR
+                if error_norm < self.tiny_err:
+                    factor = self.max_factor
+                    self.standard_sc = True
 
                 elif self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
@@ -293,23 +294,23 @@ class BS5(RungeKutta):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
+                    factor = min(self.max_factor, max(self.min_factor, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
 
                 h_abs *= factor
 
-                if factor < MAX_FACTOR_SWITCH:
-                    # reduce MAX_FACTOR when on scale.
-                    self.MAX_FACTOR = MAX_FACTOR
+                if factor < MAX_FACTOR:
+                    # reduce max_factor when on scale.
+                    self.max_factor = MAX_FACTOR
 
             else:
                 if np.isnan(error_norm) or np.isinf(error_norm):
                     return False, "Overflow or underflow encountered."
 
                 step_rejected = True
-                h_abs *= max(self.MIN_FACTOR,
+                h_abs *= max(self.min_factor,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1

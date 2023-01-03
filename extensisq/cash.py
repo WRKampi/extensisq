@@ -244,7 +244,7 @@ class CKdisc(RungeKutta):
         [0, 3/2, -4, 5/2]])
 
     def __init__(self, fun, t0, y0, t_bound, **extraneous):
-        super(CKdisc, self).__init__(
+        super().__init__(
             fun, t0, y0, t_bound, nfev_stiff_detect=0, **extraneous)
         # adaptive weighing factors:
         self.twiddle = [1.5, 1.1]                             # starting values

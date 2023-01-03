@@ -1,6 +1,6 @@
 import numpy as np
 from extensisq.common import (
-    RungeKutta, NFS, norm, MAX_FACTOR, MAX_FACTOR_SWITCH, calculate_scale)
+    RungeKutta, NFS, norm, MAX_FACTOR, calculate_scale)
 
 
 class CFMR7osc(RungeKutta):
@@ -72,7 +72,7 @@ class CFMR7osc(RungeKutta):
         Predefined parameters are:
             Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
             Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
-        The default for this method is "S".
+        The default for this method is "G".
 
     References
     ----------
@@ -87,7 +87,7 @@ class CFMR7osc(RungeKutta):
     n_stages = 9
     tanang = 40
     stbrad = 4.7
-    sc_params = "S"
+    sc_params = "G"
 
     # time step fractions
     C = np.array([0, 4/63, 2/21, 1/7, 7/17, 13/24, 7/9, 91/100, 1])
@@ -174,7 +174,7 @@ class CFMR7osc(RungeKutta):
             if error_norm_pre > 1:
                 step_rejected = True
                 h_abs *= max(
-                    self.MIN_FACTOR,
+                    self.min_factor,
                     self.safety * error_norm_pre ** self.error_exponent)
 
                 NFS[()] += 1
@@ -192,8 +192,9 @@ class CFMR7osc(RungeKutta):
             if error_norm < 1:
                 step_accepted = True
 
-                if error_norm == 0.:
-                    factor = self.MAX_FACTOR
+                if error_norm < self.tiny_err:
+                    factor = self.max_factor
+                    self.standard_sc = True
 
                 elif self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
@@ -206,20 +207,20 @@ class CFMR7osc(RungeKutta):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
+                    factor = min(self.max_factor, max(self.min_factor, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
 
                 h_abs *= factor
 
-                if factor < MAX_FACTOR_SWITCH:
-                    # reduce MAX_FACTOR when on scale.
-                    self.MAX_FACTOR = MAX_FACTOR
+                if factor < MAX_FACTOR:
+                    # reduce max_factor when on scale.
+                    self.max_factor = MAX_FACTOR
 
             else:
                 step_rejected = True
-                h_abs *= max(self.MIN_FACTOR,
+                h_abs *= max(self.min_factor,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1

@@ -5,13 +5,11 @@ import logging
 from scipy.integrate._ivp.common import (
     validate_max_step, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver, DenseOutput
-# from scipy.integrate._ivp.rk import MIN_FACTOR, MAX_FACTOR
 
 
-MIN_FACTOR = 0.5
-MAX_FACTOR = 2.0
-MAX_FACTOR_SWITCH = 4.0
-MAX_FACTOR0 = 8.0
+MIN_FACTOR = 0.2
+MAX_FACTOR = 4.0
+MAX_FACTOR0 = 10
 NFS = np.array(0)                                         # failed step counter
 
 
@@ -105,8 +103,8 @@ class RungeKutta(OdeSolver):
     # Parameters for stepsize control, optional
     sc_params = "standard"                      # tuple, or str
 
-    MAX_FACTOR = MAX_FACTOR0                    # initially
-    MIN_FACTOR = MIN_FACTOR
+    max_factor = MAX_FACTOR0                    # initially
+    min_factor = MIN_FACTOR
 
     def _init_min_step_parameters(self):
         """Define the parameters h_min_a and h_min_b for the min_step rule:
@@ -187,6 +185,7 @@ class RungeKutta(OdeSolver):
         self.error_exponent = -1 / (self.error_estimator_order + 1)
         self._init_stiffness_detection(nfev_stiff_detect)
         self.h_min_a, self.h_min_b = self._init_min_step_parameters()
+        self.tiny_err = self.h_min_b
         self._init_sc_control(sc_params)
 
         # size of first step:
@@ -234,8 +233,9 @@ class RungeKutta(OdeSolver):
             if error_norm < 1:
                 step_accepted = True
 
-                if error_norm == 0.:
-                    factor = self.MAX_FACTOR
+                if error_norm < self.tiny_err:
+                    factor = self.max_factor
+                    self.standard_sc = True
 
                 elif self.standard_sc:
                     factor = self.safety * error_norm ** self.error_exponent
@@ -248,20 +248,20 @@ class RungeKutta(OdeSolver):
                         error_norm ** self.minbeta1 *
                         self.error_norm_old ** self.minbeta2 *
                         h_ratio ** self.minalpha)
-                    factor = min(self.MAX_FACTOR, max(self.MIN_FACTOR, factor))
+                    factor = min(self.max_factor, max(self.min_factor, factor))
 
                 if step_rejected:
                     factor = min(1, factor)
 
                 h_abs *= factor
 
-                if factor < MAX_FACTOR_SWITCH:
-                    # reduce MAX_FACTOR when on scale.
-                    self.MAX_FACTOR = MAX_FACTOR
+                if factor < MAX_FACTOR:
+                    # reduce max_factor when on scale.
+                    self.max_factor = MAX_FACTOR
 
             else:
                 step_rejected = True
-                h_abs *= max(self.MIN_FACTOR,
+                h_abs *= max(self.min_factor,
                              self.safety * error_norm ** self.error_exponent)
 
                 NFS[()] += 1
@@ -1053,8 +1053,9 @@ def stiff_a(fun, x, y, hnow, havg, xend, maxfcn, wt, fxy, v0, cost,
         stif = None       # uncertain
         return stif, rootre
 
-    # If the average step size corresponds to being well within the stability
-    # region, the step size is not being restricted because of stability.
+    # If the average step size corresponds to being well within the
+    # stability region, the step size is not being restricted because
+    # of stability.
     stif = rho >= 0.9 * stbrad
     return stif, rootre
 
