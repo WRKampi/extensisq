@@ -14,8 +14,8 @@ setuptools.setup(
     url="https://github.com/WRKampi/extensisq",
     packages=setuptools.find_packages(),
     install_requires=[
-        "numpy>=1.4.0",
-        "scipy>=1.0.0",
+        "numpy>=1.22.0",
+        "scipy>=1.8.0",
     ],
     keywords=[
         'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
@@ -34,6 +34,6 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Physics"
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     tests_require=['pytest']
 )
