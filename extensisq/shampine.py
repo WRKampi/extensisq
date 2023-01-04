@@ -336,7 +336,7 @@ class SWAG(OdeSolver):
             yp[:] = self.fun(x, p)                                   # evaluate
 
             # added update of wt:
-            wt[:] = calculate_scale(self.atol, self.rtol, p, y)
+            wt[:] = calculate_scale(self.atol, self.rtol, p, y, _mean=True)
 
             # estimate errors at orders k, k-1, k-2
             temp3 = 1.0 / wt

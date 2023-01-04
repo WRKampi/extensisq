@@ -40,11 +40,11 @@ def validate_tol(rtol, atol, y):
     return rtol, atol
 
 
-def calculate_scale(atol, rtol, y, y_new):
+def calculate_scale(atol, rtol, y, y_new, _mean=False):
     """calculate a scaling vector for the error estimate"""
+    if _mean:
+        return atol + rtol * 0.5*(np.abs(y) + np.abs(y_new))
     return atol + rtol * np.maximum(np.abs(y), np.abs(y_new))
-    # the other popular option is:
-    # return atol + rtol * 0.5*(np.abs(y) + np.abs(y_new))
 
 
 def norm(x):
