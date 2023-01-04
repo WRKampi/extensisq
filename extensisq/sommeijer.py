@@ -4,7 +4,8 @@ from warnings import warn
 from scipy.integrate._ivp.common import (
     validate_max_step, validate_first_step, warn_extraneous)
 from scipy.integrate._ivp.base import OdeSolver
-from extensisq.common import validate_tol, CubicDenseOutput, NFS, norm
+from extensisq.common import (validate_tol, CubicDenseOutput, NFS, norm,
+                              calculate_scale)
 
 
 # global counters, several were removed
@@ -86,13 +87,13 @@ class SSV2stab(OdeSolver):
     .. [2] Fortran code rkc.f.
            http://www.netlib.no/netlib/ode/
     """
-    # the main modifications are marked with "# mod", or "# added"
+    # the main modifications are marked with "# mod"
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None,
                  const_jac=False, rho_jac=None, **extraneous):
         warn_extraneous(extraneous)
-        super(SSV2stab, self).__init__(
+        super().__init__(
             fun, t0, y0, t_bound, vectorized, support_complex=False)
         if first_step is None:
             self.absh = None
@@ -213,9 +214,7 @@ class SSV2stab(OdeSolver):
 
             # Estimate the local error and compute its weighted RMS norm.
             # original:
-            wt = self.atol + self.rtol * np.maximum(np.abs(y), np.abs(yn))
-            # wt = self.atol + self.rtol * 0.5*(np.abs(y) + np.abs(yn))   # mod
-            # mod performs worse, original is used.
+            wt = calculate_scale(self.atol, self.rtol, y, yn)
             est = 0.8 * (yn - y) + 0.4 * h * (fn + vtemp1)
             err = norm(est / wt)
 
@@ -374,7 +373,7 @@ class SSV2stab(OdeSolver):
             nfesig[()] += 1
             dfnrm = np.linalg.norm(fv - fn)
             sigmal = sigma
-            sigma = dfnrm/dynrm
+            sigma = dfnrm / dynrm
 
             # sprad is a little bigger than the estimate sigma of the
             # spectral radius, so is more likely to be an upper bound.
