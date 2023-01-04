@@ -6,7 +6,6 @@ from extensisq.tsitouras import Ts5
 from extensisq.bogacki import BS5
 from extensisq.cash import CK5, CKdisc
 from extensisq.prince import Pr7, Pr8, Pr9
-from extensisq.heun import HE2
 from extensisq.shampine import SWAG
 from extensisq.calvo import CFMR7osc
 from extensisq.sommeijer import SSV2stab
