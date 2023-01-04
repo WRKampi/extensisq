@@ -204,7 +204,7 @@ class CKdisc(RungeKutta):
 
     # all embedded orders:
     B_all = np.array([
-        6*[0],                                                        # order 0
+        [0, 0, 0, 0, 0, 0],                                           # order 0
         [1, 0, 0, 0, 0, 0],                                           # order 1
         [-3/2, 5/2, 0, 0, 0, 0],                                      # order 2
         [19/54, 0, -10/27, 55/54, 0, 0],                              # order 3
