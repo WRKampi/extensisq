@@ -345,8 +345,7 @@ class SSV2stab(OdeSolver):
         # Euclidean norm has the constant value dynrm.
         if self.V is None:
             self.V = fn.copy()
-        else:
-            v[:] = self.V
+        v[:] = self.V
         ynrm = np.linalg.norm(yn)
         vnrm = np.linalg.norm(v)
         if ynrm != 0.0 and vnrm != 0.0:
