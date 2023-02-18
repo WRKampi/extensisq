@@ -36,7 +36,7 @@ def validate_tol(rtol, atol, y):
     # rtol is bounded from both sides.
     # The lower bound is lower than in scipy.
     epsneg = np.finfo(y.dtype).epsneg
-    rtol = np.minimum(np.maximum(rtol, 10 * epsneg), 0.01)
+    rtol = np.minimum(np.maximum(rtol, 10 * epsneg), 0.1)
     return rtol, atol
 
 
