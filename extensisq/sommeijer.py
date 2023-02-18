@@ -73,10 +73,11 @@ class SSV2stab(OdeSolver):
         method, resulting in a slight efficiency increase. Default: False.
     rho_jac : None or callable, optional
         If the upper bound of the spectral radius of your problem can be given
-        in a simple, fast to evaluate expression, then you can inform
-        method using a function with signature: sprad = rho_jac(t, y). This is
-        more efficient than using power iterations to find a spectral radius
-        estimate, as is done by default: rho_jac=None.
+        in a simple, fast to evaluate expression, then you can inform the
+        method using a function with signature: sprad = rho_jac(t, y). (`*args`
+        is not passed to `rho_jac`.) This is more efficient than using power
+        iterations to find a spectral radius estimate, as is done by default:
+        rho_jac=None. `rho_jac` is called every step if const_jac==False.
 
     References
     ----------
