@@ -39,8 +39,9 @@ More examples are available as notebooks (update needed):
 2. [About `BS5` and its interpolants](docs/Demo_BS5.ipynb)
 3. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
 4. [Special method `CKdisc` for non-smooth problems](https://github.com/WRKampi/extensisq/blob/main/docs/Cash_Karp.ipynb)
-5. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
-6. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
+5. [Special method `CFMR7osc` for oscillatory problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CFMR7osc.ipynb)
+6. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
+7. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 
 
 ## Methods
