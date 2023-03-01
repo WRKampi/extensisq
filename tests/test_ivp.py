@@ -7,10 +7,10 @@ from pytest import raises as assert_raises
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.sparse import coo_matrix, csc_matrix
-from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2, Me4
+from extensisq import BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, Me4
 
 
-METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, HE2, Me4]
+METHODS = [BS5, Ts5, CK5, CKdisc, Pr7, Pr8, Pr9, SWAG, CFMR7osc, Me4]
 
 
 def fun_zero(t, y):
@@ -170,7 +170,7 @@ def test_integration(method):
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method in ['DOP853', Pr8, Pr9, HE2]:
+        if method in ['DOP853', Pr8, Pr9]:
             # DOP853 spends more functions evaluation because it doesn't
             # have enough time to develop big enough step size.
             assert_(res.nfev < 60)  # increased
@@ -237,8 +237,6 @@ def test_integration_complex(method):
         if method in ['DOP853', SWAG, Pr8, Pr9]:
             print(method, res.nfev)
             assert res.nfev < 40      # increased
-        elif method == HE2:
-            assert res.nfev < 60
         else:
             print(method, res.nfev)
             assert res.nfev < 25
