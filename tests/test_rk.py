@@ -31,9 +31,7 @@ def test_coefficient_properties(solver):
 @pytest.mark.parametrize("solver_class", METHODS)
 def test_error_estimation(solver_class):
     if solver_class == Me4:
-        return  # Me4 somehow does not pass this test
-    elif solver_class == HE2:
-        step = 0.02
+        return  # Me4 does not pass this test: fifth order error estimate
     else:
         step = 0.2
     solver = solver_class(lambda t, y: y, 0, [1], 1, first_step=step)
