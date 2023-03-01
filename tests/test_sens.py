@@ -102,6 +102,7 @@ def test_sens_adjoint_int(method):
 @pytest.mark.parametrize('method', METHODS)
 def test_sens_adjoint_end(method):
     t_span = (0., 0.4)
+    sol_y = None
 
     for i in range(3):
         def g(t, y, *p, i=i):
@@ -115,9 +116,10 @@ def test_sens_adjoint_end(method):
         def dgdp(t, y, *p):
             return np.zeros(3)
 
-        sens, gf, _, _ = sens_adjoint_end(
+        sens, gf, sol_y, _ = sens_adjoint_end(
             fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy, method=method,
-            atol=atol, rtol=rtol, atol_quad=atol_quad/10, atol_adj=atol_adj/10)
+            atol=atol, rtol=rtol, atol_quad=atol_quad/10, atol_adj=atol_adj/10,
+            sol_y=sol_y)
 
         assert_allclose(gf, [result_forward['yf'][i]], rtol=1e-3)
         assert_allclose(sens, result_forward['sens'][i], rtol=1e-2)
