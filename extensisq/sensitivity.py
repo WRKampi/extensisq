@@ -417,7 +417,7 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
         contains the values of the parameters.
     g : callable
         The function to calculate the senistivity of, with signature
-        fun(t, y, *p) -> scalar.
+        fun(t, y, *p) -> array of size 1.
     dgdp : callable
         The derivative of function g to parameters p, with signature
         dgdp(t, y, *p) -> array of size np.
