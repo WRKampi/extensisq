@@ -35,8 +35,8 @@ Borrowed from the the scipy documentation:
 Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc` and `SSV2stab`) can be used in a similar way.
 
 More examples are available as notebooks (update needed):
-1. [Integration with Scipy's `solve_ivp` function](docs/Demo_solve_ivp.ipynb)
-2. [About `BS5` and its interpolants](docs/Demo_BS5.ipynb)
+1. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve_ivp.ipynb)
+2. [About `BS5` and its interpolants](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_BS5.ipynb)
 3. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
 4. [Special method `CKdisc` for non-smooth problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CKdisc.ipynb)
 5. [Special method `CFMR7osc` for oscillatory problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CFMR7osc.ipynb)
