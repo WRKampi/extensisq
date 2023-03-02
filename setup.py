@@ -21,7 +21,8 @@ setuptools.setup(
         'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
         'runge-kutta', 'differential-equations', 'cash-karp', 'prince',
         'bogacki-shampine', 'adams', 'adams-bashforth-moulton', 'ode113',
-        'predictor-corrector', 'shampine-gordon', 'solver'
+        'predictor-corrector', 'shampine-gordon', 'solver', 'sensitivity',
+        'sensitivity-analysis'
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
