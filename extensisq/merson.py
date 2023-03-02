@@ -4,8 +4,8 @@ from extensisq.common import RungeKutta
 
 class Me4(RungeKutta):
     """Merson's explicit Runge-Kutta method of order 4, with an embedded method
-    for error estimation of order 3 (or 5 for LTI systems) and a free
-    interpolant of order 3 (4th order polynomial).
+    for error estimation of order 3 (or 5 for linear time invariant problems)
+    and a free interpolant of order 3 (4th order polynomial).
 
     This is the oldest embedded Runge-Kutta method. It has a large stability
     domain for a 4th order method, especially on the imaginary axis.
