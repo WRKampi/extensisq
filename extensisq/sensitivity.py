@@ -5,12 +5,12 @@ from extensisq import BS5
 from collections import namedtuple
 
 
-SensitivityOutput = namedtuple("SensitivityOutput", "sensf yf sol")
-AdjointSensitivityOutputInt = namedtuple("SensitivityOutput",
+SensitivityOutput = namedtuple("ForwardSensitivityOutput",
+                               "sensf yf sol")
+AdjointSensitivityOutputInt = namedtuple("AdjointSensitivityOutput",
                                          "sens G sol_y sol_bw")
-AdjointSensitivityOutputEnd = namedtuple("SensitivityOutput",
+AdjointSensitivityOutputEnd = namedtuple("AdjointSensitivityOutput",
                                          "sens gf sol_y sol_bw")
-PeriodicOutput = namedtuple("PeriodicOutput", "y0 success residual nit sol")
 
 
 def _test_functions(fun, t0, y0, ndim, args=None, Np=None):
@@ -99,7 +99,7 @@ def sens_forward(fun, t_span, y0, jac, dfdp, dy0dp, p, atol=1e-6, rtol=1e-3,
         the sensitivity parameters is atol/p_i if p_i is not 0 and atol
         otherwise. Default: 1e-6.
     rtol : float, optional
-        The relative tolerance for solve_ivp (used for y and senistivity).
+        The relative tolerance for solve_ivp (used for y and sensitivity).
         Default: 1e-3.
     method : solver class or string, optional
         The ODE solver that is used. Default: BS5
@@ -122,7 +122,7 @@ def sens_forward(fun, t_span, y0, jac, dfdp, dy0dp, p, atol=1e-6, rtol=1e-3,
     yf : array, shape (n, )
         The solution at the endpoint.
     sol : OdeSolution
-        The solver output containing the combined problem (flattend).
+        The solver output containing the combined problem (flattened).
 
     References
     ----------
@@ -250,7 +250,7 @@ def sens_adjoint_end(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     p : array_like, shape (np,)
         contains the values of the parameters.
     g : callable
-        The function to calculate the senistivity of, with signature
+        The function to calculate the sensitivity of, with signature
         fun(t, y, *p) -> array of size 1.
     dgdp : callable
         The derivative of function g to parameters p, with signature
@@ -273,7 +273,7 @@ def sens_adjoint_end(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
         The absolute tolerance for solve_ivp used for solution of the definite
         integral, by default 1e-6
     sol_y : OdeResult or None, optional
-        if an OdeResult of y is already available, including dense outout, then
+        if an OdeResult of y is already available, including dense output, then
         it can be provided and the forward integration will be skipped to save
         time. Default None
 
@@ -416,8 +416,8 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     p : array_like, shape (np,)
         contains the values of the parameters.
     g : callable
-        The function to calculate the senistivity of, with signature
-        fun(t, y, *p) -> array of size 1.
+        The integrand of the function to calculate the sensitivity of, with
+        signature fun(t, y, *p) -> array of size 1.
     dgdp : callable
         The derivative of function g to parameters p, with signature
         dgdp(t, y, *p) -> array of size np.
@@ -439,7 +439,7 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
         The absolute tolerance for solve_ivp used for solution of the definite
         integral, by default 1e-6
     sol_y : OdeResult or None, optional
-        if an OdeResult of y is already available, including dense outout, then
+        if an OdeResult of y is already available, including dense output, then
         it can be provided and the forward integration will be skipped to save
         time. Default None
 
@@ -452,7 +452,8 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     sol_y : OdeResult
         The solution of the forward solve of y
     sol_bw : OdeResult
-        The solution of the backward solve of lambda and the definite integral
+        The solution of the backward solve of lambda, the definite integral and
+        the integral G.
 
     References
     ----------
@@ -526,7 +527,8 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     yf_bw = np.zeros(Ny + Np + 1)
     atol_bw = np.zeros(Ny + Np + 1)
     atol_bw[:Ny] = atol_adj
-    atol_bw[Ny:] = atol_quad
+    atol_bw[Ny:-1] = atol_quad
+    atol_bw[-1] = np.min(atol_quad)
 
     if method not in ('LSODA', 'BDF', 'Radau'):
         # explicit method
