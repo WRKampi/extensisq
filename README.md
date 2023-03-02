@@ -43,6 +43,7 @@ More examples are available as notebooks (update needed):
 6. [Special method `SSV2stab` for large, mildly stiff problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_SSV2stab.ipynb)
 7. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 8. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
+9. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
 
 
 ## Methods
@@ -57,6 +58,9 @@ Three explicit Runge Kutta methods of order 5 are implemented:
 * `CK5`: fifth order method with the coefficients from [2], for general use.
 * `Ts5`: relatively new solver (2011) by Tsitouras, optimized with fewer simplifying assumptions [3].
 
+One fourth order method:
+* `Me4`: Merson's method, the first embedded RK method [14]. The embedded method for error estimation is 5th order for linear problems and 3rd order for general problems. A 3rd order interpolant is added. This method has a large stability region. It may be useful as alternative to 'RK23' for solving problems to lower accuracy.
+
 Three higher order explicit Runge Kutta methods by Prince [4] are implemented:
 * `Pr7`: a seventh order discrete method with fifth order error estimate, derived from a sixth order continuous method.
 * `Pr8`: an eighth order discrete method with sixth order error estimate, derived from a seventh order continuous method.
@@ -69,14 +73,18 @@ Three methods for specific types of problems are available:
 * `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently and accurately solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations up to low to moderate accuracy. Equations arising from semi-discretization of parabolic PDEs are a typical use case.
 
+## Sensitivity analysis
+Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
+* `sens_forward`: to calculate the sensitivity of all solution components to (a few) parameters.
+* `sens_adjoint_end`: to calculate the sensitivity of a scalar function of the solution to (many) parameters.
+* `sens_adjoint_int`: to calculate the sensitivity of a scalar integral of the solution to (many) parameters.
+
 ## Other features
 The initial step size, when not supplied by you, is estimated using the method of Watts [7,B]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
 
 Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8,A] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
 Second order stepsize controllers [9-11] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
-
-
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28. https://doi.org/10.1016/0898-1221(96)00141-1
@@ -105,6 +113,9 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 
 [13] B.P. Sommeijer, L.F. Shampine, J.G. Verwer, "RKC: An explicit solver for parabolic PDEs", Journal of Computational and Applied Mathematics, Vol. 88, No. 2, 1998, pp. 315-326. https://doi.org/10.1016/S0377-0427(97)00219-7
 
+[14] E. Hairer, G. Wanner, S.P. Norsett, "Solving Ordinary Differential Equations I", Springer Berlin, Heidelberg, 1993, https://doi.org/10.1007/978-3-540-78862-1
+
+[15] R.Serban, A.C. Hindmarsh, "CVODES: The Sensitivity-Enabled ODE Solver in SUNDIALS", 5th International Conference on Multibody Systems Nonlinear Dynamics and Control, Vol. 6, 2005, https://doi.org/10.1115/DETC2005-85597
 
 ## Original source codes (Fortran)
 
