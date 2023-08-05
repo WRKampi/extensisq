@@ -126,6 +126,7 @@ class BS5(RungeKutta):
     # coefficients for first error estimation method
     # this is actually the main error estimator
     E_pre = np.array([-3/1280, 0, 6561/632320, -343/20800, 243/12800, -1/95])
+    B_scale_pre = np.array([19/48, 0, -189/416, 343/780, 99/160, 0])
 
     # coefficients for post error estimation method
     # this can account for sudden changes above c=3/4, which the main error
@@ -335,7 +336,7 @@ class BS5(RungeKutta):
     def _estimate_error_norm_pre(self, y, h):
         # first error estimate
         # y_new is not available yet for scale, so use y_pre instead
-        y_pre = y + h * (self.K[:6].T @ self.A[6, :6])
+        y_pre = y + h * (self.K[:6].T @ self.B_scale_pre)
         scale = calculate_scale(self.atol, self.rtol, y, y_pre)
         err = h * (self.K[:6, :].T @ self.E_pre)
         return norm(err / scale)
