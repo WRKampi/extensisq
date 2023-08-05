@@ -151,7 +151,23 @@ def test_classes(cls):
     assert_allclose(sol(0), y0, rtol=1e-14, atol=0)
 
 
+@pytest.mark.parametrize('method', METHODS)
+def test_wrong_problem(method):
+    # odd nr of components
+    fun = lambda t, y: -y
+    with pytest.raises(AssertionError):
+        method(fun, 0, [1], 1)
+    # dx != v
+    fun = lambda t, y: [-y[1], y[0]]
+    with pytest.raises(AssertionError):
+        method(fun, 0, [0, 1], 1)
+    with pytest.raises(AssertionError):
+        method(fun, 0, [1, 1], 1)
+    with pytest.raises(AssertionError):
+        method(fun, 0, [0, 0], 1)
+
+
 if __name__ == "__main__":
     method = Fi4N
     # test_integration(method)
-    test_classes(method)
+    # test_classes(method)

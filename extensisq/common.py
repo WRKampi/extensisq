@@ -1169,13 +1169,21 @@ class RungeKuttaNystrom(RungeKutta):
             fun, t0, y0, t_bound, nfev_stiff_detect=0,
             sc_params=None, support_complex=True, **extraneous)
         self.n = self.y.size // 2
-        # print(self.y.size , self.n, self.y, self.f)
+        # check if fun is a correctly structured 2nd order problem
+        msg = ('This method is for second order problems'
+               ' and `fun` should have signature: [v, a] = fun(t, [x, v]).')
         if (self.y.size % 2) or not np.all(self.y[self.n:] == self.f[:self.n]):
-            raise AssertionError(
-                'This method is for second order problems'
-                ' and `fun` should have signature: [v, a] = fun(t, [x, v]).')
-        if self.Ep[-1] != 0.:   # E is already checked, not Ep
+            raise AssertionError(msg)
+        elif np.all(self.y[self.n:] == self.y[:self.n]):
+            y_test = self.y.copy()
+            y_test[:self.n] *= 1 + 1e-16
+            y_test[:self.n] += 1e-16
+            if not np.all(fun(t0, y_test)[:self.n] == y_test[:self.n]):
+                raise AssertionError(msg)
+        # check Ep, (E is already checked)
+        if self.Ep[-1] != 0.:
             self.FSAL = 1
+        # need storage for accelerations only
         self.K = np.empty((self.n_stages + 1, self.n), self.y.dtype)
         self.f = self.f[self.n:]
 
