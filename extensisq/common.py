@@ -173,10 +173,11 @@ class RungeKutta(OdeSolver):
 
     def __init__(self, fun, t0, y0, t_bound, max_step=np.inf, rtol=1e-3,
                  atol=1e-6, vectorized=False, first_step=None,
-                 nfev_stiff_detect=5000, sc_params=None, **extraneous):
+                 nfev_stiff_detect=5000, sc_params=None, support_complex=True,
+                 **extraneous):
         warn_extraneous(extraneous)
-        super(RungeKutta, self).__init__(fun, t0, y0, t_bound, vectorized,
-                                         support_complex=True)
+        super().__init__(fun, t0, y0, t_bound, vectorized,
+                         support_complex=support_complex)
         self.max_step = validate_max_step(max_step)
         self.rtol, self.atol = validate_tol(rtol, atol, self.y)
         self.f = self.fun(self.t, self.y)
@@ -230,6 +231,7 @@ class RungeKutta(OdeSolver):
             y_new, error_norm = self._comp_sol_err(y, h)
 
             # evaluate error
+
             if error_norm < 1:
                 step_accepted = True
 
@@ -323,10 +325,7 @@ class RungeKutta(OdeSolver):
         return norm(self._estimate_error(K, h) / scale)
 
     def _comp_sol_err(self, y, h):
-        """Compute solution and error.
-        The calculation of `scale` differs from scipy: The average instead of
-        the maximum of abs(y) of the current and previous steps is used.
-        """
+        """Compute solution and error"""
         y_new = y + h * (self.K[:self.n_stages].T @ self.B)
         scale = calculate_scale(self.atol, self.rtol, y, y_new)
 
@@ -704,7 +703,7 @@ class HornerDenseOutput(DenseOutput):
     """use Horner's rule for the evaluation of the dense output polynomials.
     """
     def __init__(self, t_old, t, y_old, Q):
-        super(HornerDenseOutput, self).__init__(t_old, t)
+        super().__init__(t_old, t)
         self.h = t - t_old
         self.Q = Q * self.h
         self.y_old = y_old
@@ -1159,3 +1158,197 @@ def stiff_d(v, havg, x, y, f, fxy, wt, scale, vdotv):
     z = havg/temp1 * (z - fxy)
     zdotz = (z/wt) @ (z/wt)
     return z, zdotz
+
+
+class RungeKuttaNystrom(RungeKutta):
+    """Base class for explicit runge kutta nystrom methods.
+        [v, a] = fun(t, [u, v])
+    """
+    def __init__(self, fun, t0, y0, t_bound, **extraneous):
+        super().__init__(
+            fun, t0, y0, t_bound, nfev_stiff_detect=0,
+            sc_params=None, support_complex=True, **extraneous)
+        self.n = self.y.size // 2
+        # print(self.y.size , self.n, self.y, self.f)
+        if (self.y.size % 2) or not np.all(self.y[self.n:] == self.f[:self.n]):
+            raise AssertionError(
+                'This method is for second order problems'
+                ' and `fun` should have signature: [v, a] = fun(t, [x, v]).')
+        if self.Ep[-1] != 0.:   # E is already checked, not Ep
+            self.FSAL = 1
+        self.K = np.empty((self.n_stages + 1, self.n), self.y.dtype)
+        self.f = self.f[self.n:]
+
+        def fun(*args, fun=self.fun, n=self.n):
+            return fun(*args)[n:]
+
+        self.fun = fun
+
+    def _rk_stage(self, h, i):
+        """compute a single RK stage"""
+        dt = self.C[i] * h
+        du = (self.K[:i, :].T @ self.A[i, :i])*h**2 + dt*self.y[self.n:]
+        dv = (self.K[:i, :].T @ self.Ap[i, :i])*h
+        dy = np.concatenate((du, dv))
+        self.K[i] = self.fun(self.t + dt, self.y + dy)
+
+    def _comp_sol_err(self, y, h):
+        du = (self.K[:self.n_stages, :].T @ self.B) * h**2 \
+            + h * self.y[self.n:]
+        dv = (self.K[:self.n_stages, :].T @ self.Bp) * h
+        dy = np.concatenate((du, dv))
+        y_new = y + dy
+        scale = calculate_scale(self.atol, self.rtol, y, y_new)
+
+        if self.FSAL:
+            # do FSAL evaluation if needed for error estimate
+            self.K[self.n_stages, :] = self.fun(self.t + h, y_new)
+
+        error_norm = self._estimate_error_norm(self.K, h, scale)
+        return y_new, error_norm
+
+    def _estimate_error(self, K, h):
+        eu = (self.K[:self.n_stages + self.FSAL, :].T @
+              self.E[:self.n_stages + self.FSAL]) * h**2
+        ev = (self.K[:self.n_stages + self.FSAL, :].T @
+              self.Ep[:self.n_stages + self.FSAL]) * h
+        e = np.concatenate((eu, ev))
+        return e
+
+    def _dense_output_impl(self):
+
+        if isinstance(self.P, np.ndarray) and isinstance(self.Pp, np.ndarray):
+            Q = self.K.T @ self.P
+            Qp = self.K.T @ self.Pp
+            return HornerDenseOutputNyquist(
+                self.t_old, self.t, self.y_old, Q, Qp)
+
+        return QuinticHermiteDenseOutput(
+            self.t_old, self.t, self.y_old, self.y, self.f_old, self.f)
+
+
+class HornerDenseOutputNyquist(DenseOutput):
+    """use Horner's rule for the evaluation of the dense output polynomials.
+    """
+    def __init__(self, t_old, t, y_old, Q, Qp):
+        super().__init__(t_old, t)
+        self.h = t - t_old
+        self.Q = Q * self.h**2
+        self.Qp = Qp * self.h
+        self.y_old = y_old
+        self.n = self.y_old.size // 2
+
+    def _call_impl(self, t):
+        # scaled time
+        xi = (t - self.t_old) / self.h
+
+        # Velocity, Horner's rule
+        v = self.Qp.T[-1, :, np.newaxis] * xi
+        for q in reversed(self.Qp.T[:-1]):
+            v += q[:, np.newaxis]
+            v *= xi
+        v += self.y_old[self.n:, np.newaxis]
+
+        # Displacement, Horner's rule
+        u = self.Q.T[-1, :, np.newaxis] * xi
+        for q in reversed(self.Q.T[:-1]):
+            u += q[:, np.newaxis]
+            u *= xi
+        u += self.y_old[self.n:, np.newaxis] * self.h
+        u *= xi
+        u += self.y_old[:self.n, np.newaxis]
+
+        y = np.concatenate((u, v), axis=0)
+
+        if t.shape:
+            return y
+        else:
+            return y[:, 0]
+
+
+class QuinticHermiteDenseOutput(DenseOutput):
+    """Quintic, C2 continuous interpolator for 2nd order ODEs
+    (C2 for x, C1 for v, order=5)"""
+
+    P = np.array([[1, 0, 0, -10, 15, -6],
+                  [0, 1, 0, -6, 8, -3],
+                  [0, 0, 1/2, -3/2, 3/2, -1/2],
+                  [0, 0, 0, 10, -15, 6],
+                  [0, 0, 0, -4, 7, -3],
+                  [0, 0, 0, 1/2, -1, 1/2]])
+    Pp = P[:, 1:] * np.arange(1, 6)
+
+    def __init__(self, t_old, t, y_old, y, f_old, f):
+        super().__init__(t_old, t)
+        self.h = t - t_old
+        n = y.size//2
+        self.x_old = y_old[:n]
+        self.v_old = y_old[n:]
+        self.a_old = f_old
+        self.x = y[:n]
+        self.v = y[n:]
+        self.a = f
+
+    def _call_impl(self, t):
+        # scaled time
+        h = self.h
+        xi = (t - self.t_old) / h
+
+        Q = np.array(
+            [self.x_old, self.v_old*h, self.a_old*h**2,
+             self.x, self.v*h, self.a*h**2]).T @ self.P
+        Qp = np.array(
+            [self.x_old/h, self.v_old, self.a_old*h,
+             self.x/h, self.v, self.a*h]).T @ self.Pp
+
+        # Horner's rule:
+        x = Q.T[-1, :, np.newaxis] * np.ones_like(xi)
+        for q in reversed(Q.T[:-1]):
+            x *= xi
+            x += q[:, np.newaxis]
+
+        v = Qp.T[-1, :, np.newaxis] * np.ones_like(xi)
+        for q in reversed(Qp.T[:-1]):
+            v *= xi
+            v += q[:, np.newaxis]
+
+        y = np.concatenate((x, v), axis=0)
+        if t.shape:
+            return y
+        else:
+            return y[:, 0]
+
+    def _call_impl_old(self, t):
+        # scaled time
+        h = self.h
+        xi = (t - self.t_old) / h
+
+        # quintic hermite spline:
+        d1 = 1. - 10.*xi**3 + 15.*xi**4 - 6.*xi**5
+        d2 = (xi - 6.*xi**3 + 8.*xi**4 - 3.*xi**5) * h
+        d3 = (xi**2 - 3.*xi**3 + 3.*xi**4 - xi**5) * 0.5*h**2
+        d4 = (xi**3 - 2.*xi**4 + xi**5) * 0.5*h**2
+        d5 = (-4.*xi**3 + 7.*xi**4 - 3.*xi**5) * h
+        d6 = 10.*xi**3 - 15.*xi**4 + 6.*xi**5
+
+        # derivative
+        dp1 = (-30.*xi**2 + 60.*xi**3 - 30.*xi**4)/h
+        dp2 = 1. - 18.*xi**2 + 32.*xi**3 - 15.*xi**4
+        dp3 = (2*xi - 9.*xi**2 + 12.*xi**3 - 5*xi**4) * 0.5*h
+        dp4 = (3*xi**2 - 8.*xi**3 + 5*xi**4) * 0.5*h
+        dp5 = -12.*xi**2 + 28.*xi**3 - 15.*xi**4
+        dp6 = (30.*xi**2 - 60.*xi**3 + 30.*xi**4)/h
+
+        # output
+        x = (d1*self.x_old[:, np.newaxis] + d6*self.x[:, np.newaxis] +
+             d2*self.v_old[:, np.newaxis] + d5*self.v[:, np.newaxis] +
+             d3*self.a_old[:, np.newaxis] + d4*self.a[:, np.newaxis])
+        v = (dp1*self.x_old[:, np.newaxis] + dp6*self.x[:, np.newaxis] +
+             dp2*self.v_old[:, np.newaxis] + dp5*self.v[:, np.newaxis] +
+             dp3*self.a_old[:, np.newaxis] + dp4*self.a[:, np.newaxis])
+        y = np.concatenate((x, v), axis=0)
+
+        if t.shape:
+            return y
+        else:
+            return y[:, 0]

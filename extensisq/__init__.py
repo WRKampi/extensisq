@@ -10,6 +10,8 @@ from extensisq.shampine import SWAG
 from extensisq.calvo import CFMR7osc
 from extensisq.sommeijer import SSV2stab
 from extensisq.merson import Me4
+from extensisq.fine import Fi4N, Fi5N
+from extensisq.murua import Mu5Nmb
 from extensisq.sensitivity import (sens_forward, sens_adjoint_end,
                                    sens_adjoint_int)
 
@@ -22,4 +24,5 @@ __credits__ = (
     'J.R. Cash', 'A.H. Karp', 'Ch. Tsitouras', 'P.J. Prince', 'H.A. Watts',
     'M.K. Gordon', 'G. Soederlind', 'K. Gustafsson', 'M. Calvo', 'J.M. Franco',
     'J.I. Montijano', 'L. Randez', 'B.P. Sommeijer', 'J.G. Verwer',
-    'E. Hairer', 'A.C. Hindmarsh', 'R. Serban', 'R.H. Merson')
+    'E. Hairer', 'A.C. Hindmarsh', 'R. Serban', 'R.H. Merson', 'J.M. Fine',
+    'A. Murua')
