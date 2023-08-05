@@ -83,10 +83,7 @@ class Ts5(RungeKutta):
     stbrad = 3.5
     sc_params = "G"
 
-    # time step fractions
     C = np.array([0, 0.161, 0.327, 0.9, 0.9800255409045097, 1])
-
-    # coefficient matrix
     A = np.array([
         [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0],
@@ -97,19 +94,13 @@ class Ts5(RungeKutta):
         [0, -12.92096931784711, 8.159367898576159, -0.07158497328140100,
             -0.02826905039406838, 0.0]])
     A[:, 0] = C - A.sum(axis=1)
-
-    # coefficients for the propagating method
     B = np.array([
         0.09646076681806523, 0.01, 0.4798896504144996, 1.379008574103742,
         -3.290069515436081, 2.324710524099774])
-
-    # coefficients for error estimation
     E = np.array([
         0.001780011052226, 0.000816434459657, -0.007880878010262,
         0.144711007173263, -0.582357165452555, 0.458082105929187,
         -1/66])                     # last term corrected with a minus sign
-
-    # coefficients for interpolation (dense output)
     P = np.array([
         [1, -2.763706197274826, 2.9132554618219126, -1.0530884977290216],
         [0, 0.13169999999999998, -0.2234, 0.1017],
