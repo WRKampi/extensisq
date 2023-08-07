@@ -1,7 +1,5 @@
 import pytest
-from pytest import raises as assert_raises
-from numpy.testing import (assert_, assert_allclose,
-                           assert_equal, assert_no_warnings, suppress_warnings)
+from numpy.testing import assert_, assert_allclose, assert_equal
 from scipy.integrate import solve_ivp
 import numpy as np
 from extensisq import Fi4N, Fi5N, Mu5Nmb
@@ -133,8 +131,8 @@ def test_classes(cls):
     assert_(solver.nfev > 0)
     assert_(solver.njev >= 0)
     assert_equal(solver.nlu, 0)
-
-    assert_raises(RuntimeError, solver.dense_output)
+    with pytest.raises(RuntimeError):
+        solver.dense_output()
     message = solver.step()
     assert_equal(solver.status, 'running')
     assert_equal(message, None)
@@ -165,9 +163,3 @@ def test_wrong_problem(method):
         method(fun, 0, [1, 1], 1)
     with pytest.raises(AssertionError):
         method(fun, 0, [0, 0], 1)
-
-
-if __name__ == "__main__":
-    method = Fi4N
-    # test_integration(method)
-    # test_classes(method)
