@@ -1,6 +1,6 @@
 import numpy as np
 from extensisq.common import (
-    RungeKuttaNystrom, QuinticHermiteDenseOutput, HornerDenseOutputNyquist)
+    RungeKuttaNystrom, QuinticHermiteDenseOutput, HornerDenseOutputNystrom)
 
 
 class Mu5Nmb(RungeKuttaNystrom):
@@ -220,4 +220,4 @@ class Mu5Nmb(RungeKuttaNystrom):
 
         Q = K.T @ self.P_better
         Qp = K.T @ self.Pp_better
-        return HornerDenseOutputNyquist(self.t_old, self.t, self.y_old, Q, Qp)
+        return HornerDenseOutputNystrom(self.t_old, self.t, self.y_old, Q, Qp)

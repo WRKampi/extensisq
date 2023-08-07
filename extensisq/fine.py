@@ -1,6 +1,6 @@
 import numpy as np
 from extensisq.common import (
-    RungeKuttaNystrom, QuinticHermiteDenseOutput, HornerDenseOutputNyquist)
+    RungeKuttaNystrom, QuinticHermiteDenseOutput, HornerDenseOutputNystrom)
 
 
 class Fi4N(RungeKuttaNystrom):
@@ -377,4 +377,4 @@ class Fi5N(RungeKuttaNystrom):
             # (The derivative function is not evaluated at this updated point)
             du = (K.T @ self.Bi) * h**2 + h * self.y_old[self.n:]
             self.y[:self.n] = self.y_old[:self.n] + du
-        return HornerDenseOutputNyquist(self.t_old, self.t, self.y_old, Q, Qp)
+        return HornerDenseOutputNystrom(self.t_old, self.t, self.y_old, Q, Qp)

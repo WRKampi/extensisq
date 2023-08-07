@@ -1228,14 +1228,14 @@ class RungeKuttaNystrom(RungeKutta):
         if isinstance(self.P, np.ndarray) and isinstance(self.Pp, np.ndarray):
             Q = self.K.T @ self.P
             Qp = self.K.T @ self.Pp
-            return HornerDenseOutputNyquist(
+            return HornerDenseOutputNystrom(
                 self.t_old, self.t, self.y_old, Q, Qp)
 
         return QuinticHermiteDenseOutput(
             self.t_old, self.t, self.y_old, self.y, self.f_old, self.f)
 
 
-class HornerDenseOutputNyquist(DenseOutput):
+class HornerDenseOutputNystrom(DenseOutput):
     """use Horner's rule for the evaluation of the dense output polynomials.
     """
     def __init__(self, t_old, t, y_old, Q, Qp):
