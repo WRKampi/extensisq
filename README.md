@@ -79,7 +79,7 @@ Several Nyström methods are added. These are for second order initial value pro
 * `Fi4N`: 4th order general Nyström method of Fine [16].
 * `Fi5N`: 5th order general Nyström method of Fine [16, 17].
 * `Mu5Nmb`: 5th order general Nyström method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
-* `MR6NN`: 6th order strict Nystrom methöd of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method. This interpolant has a much higer error than the main method itself, which has a very low 7th order error constant.
+* `MR6NN`: 6th order strict Nystrom methöd of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method. This interpolant has a much higher error than the main method itself, which has a very low 7th order error constant.
 
 ## Sensitivity analysis
 Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
