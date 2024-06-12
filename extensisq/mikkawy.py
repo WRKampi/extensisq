@@ -4,16 +4,19 @@ from extensisq.common import RungeKuttaNystrom
 
 class MR6NN(RungeKuttaNystrom):
     """Explicit Runge-Kutta Nystrom method by El-Mikkawy and Rahmo [1]_ of
-    order 6. This method is applicable to second order initial value problems
-    only. Moreover, these problems must be independent of the first derivative
-    (velocity). Undamped mechanics is an example of such a problem.
+    order 6. The embedded method has order 4. This method is applicable to
+    second order initial value problems only. Moreover, these problems must be
+    independent of the first derivative (velocity). Undamped mechanics is an
+    example of such a problem.
 
     The second order problem should be recast in first order form as
-    u = [x, v], du = [v, a], with x, v, a derivatives like, position,
+    u = [x, v], du = [v, a], with x, v, a variables like, position,
     velocity, acceleration. The derivative function du = f(t, u) should
     calculate only a and pass through v. (The order in u and du matters.) This
     is the same form as for general RKN methods in extensisq. So, although the
     the input of f() contains v, it must not be used in it.
+
+    This method includes a free C2-continuous sixth order interpolant.
 
     Can be applied in the complex domain.
 
@@ -108,7 +111,7 @@ class MR6NN(RungeKuttaNystrom):
     Ep = np.array([-95/39, 362030669/132210768, 317/2368, 623/1812,
                    270625/1230528, 0, 0])
     Ep[:-1] -= Bp
-    
+
     P = np.array([
         [1/2, -445/39, 2095/78, -1231/52, 1421/195],
         [0, 56490936887/5024009184, -280556420221/10048018368,
@@ -119,4 +122,3 @@ class MR6NN(RungeKuttaNystrom):
         [0, 847/1824, -5929/3648, 11011/6080, -5929/9120],
         [0, -2/3, 5/2, -3, 7/6]])
     Pp = P * np.arange(2, 7)    # derivative of P_better
-    print(Pp.shape)
