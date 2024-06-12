@@ -43,7 +43,7 @@ More examples are available as notebooks (update needed):
 6. [Special method `SSV2stab` for large, mildly stiff problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_SSV2stab.ipynb)
 7. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 8. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
-9. [Runge Kutta Nyström methods for second order equations](docs/Demo_Nystrom.ipynb)
+9. [Runge Kutta Nyström methods for second order equations](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb)
 10. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
 11. [How to implement other explicit Runge Kutta methods](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_own_RK.ipynb)
 
@@ -75,7 +75,7 @@ Three methods for specific types of problems are available:
 * `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently and accurately solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations up to low to moderate accuracy. Equations arising from semi-discretization of parabolic PDEs are a typical use case.
 
-Several Nystrom methods are added. These are for second order initial value problems. Three methods are for general problems and one is for the strict problem in which the second derivative should not depend on the first derivative. The [demo](docs/Demo_Nystrom.ipynb) shows how to use these methods.
+Several Nystrom methods are added. These are for second order initial value problems. Three methods are for general problems and one is for the strict problem in which the second derivative should not depend on the first derivative. The [demo](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb) shows how to use these methods.
 * `Fi4N`: 4th order general Nystrom method of Fine [16].
 * `Fi5N`: 5th order general Nystrom method of Fine [16, 17].
 * `Mu5Nmb`: 5th order general Nystrom method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
