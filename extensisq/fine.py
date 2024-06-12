@@ -8,7 +8,7 @@ class Fi4N(RungeKuttaNystrom):
     This method is applicable to second order initial value problems only.
 
     The second order problem should be recast in first order form as
-    u = [x, v], du = [v, a], with x, v, a derivatives like, position,
+    u = [x, v], du = [v, a], with x, v, a variables like, position,
     velocity, acceleration. The derivative function du = f(t, u) should
     calculate only a and pass through v. (The order in u and du matters.)
 
@@ -113,7 +113,7 @@ class Fi5N(RungeKuttaNystrom):
     This method is applicable to second order initial value problems only.
 
     The second order problem should be recast in first order form as
-    u = [x, v], du = [v, a], with x, v, a derivatives like, position,
+    u = [x, v], du = [v, a], with x, v, a variables like, position,
     velocity, acceleration. The derivative function du = f(t, u) should
     calculate only a and pass through v. (The order in u and du matters.)
 
