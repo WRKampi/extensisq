@@ -75,11 +75,11 @@ Three methods for specific types of problems are available:
 * `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently and accurately solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations up to low to moderate accuracy. Equations arising from semi-discretization of parabolic PDEs are a typical use case.
 
-Several Nystrom methods are added. These are for second order initial value problems. Three methods are for general problems and one is for the strict problem in which the second derivative should not depend on the first derivative. The [demo](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb) shows how to use these methods.
-* `Fi4N`: 4th order general Nystrom method of Fine [16].
-* `Fi5N`: 5th order general Nystrom method of Fine [16, 17].
-* `Mu5Nmb`: 5th order general Nystrom method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
-* `MR6NN`: 6th order strict Nystrom method of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method.
+Several Nyström methods are added. These are for second order initial value problems. Three methods are for general problems and one is for the strict problem in which the second derivative should not depend on the first derivative. The [demo](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb) shows how to use these methods.
+* `Fi4N`: 4th order general Nyström method of Fine [16].
+* `Fi5N`: 5th order general Nyström method of Fine [16, 17].
+* `Mu5Nmb`: 5th order general Nyström method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
+* `MR6NN`: 6th order strict Nystrom methöd of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method.
 
 ## Sensitivity analysis
 Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
