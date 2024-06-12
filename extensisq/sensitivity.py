@@ -136,8 +136,8 @@ def sens_forward(fun, t_span, y0, jac, dfdp, dy0dp, p, atol=1e-6, rtol=1e-3,
     p = np.asarray(p)
     Ny = y0.size
     Np = p.size
-    if y0.dtype != np.float:
-        raise ValueError("`y0` should have dtype float")
+    if y0.dtype != np.float64:
+        raise ValueError("`y0` should have dtype float64")
 
     dy0dp = np.asarray(dy0dp)
 
@@ -298,15 +298,15 @@ def sens_adjoint_end(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     Ny = y0.size
     if y0.ndim != 1:
         raise ValueError("`y0` should be a 1d array")
-    if y0.dtype != np.float:
-        raise ValueError("`y0` should have dtype float")
+    if y0.dtype != np.float64:
+        raise ValueError("`y0` should have dtype float64")
 
     p = np.asarray(p)
     Np = p.size
     if p.ndim != 1:
         raise ValueError("`p` should be a 1d array")
-    if p.dtype != np.float:
-        raise ValueError("`p` should have dtype float")
+    if p.dtype != np.float64:
+        raise ValueError("`p` should have dtype float64")
 
     dy0dp = np.asarray(dy0dp)
     if dy0dp.ndim != 2:
@@ -465,15 +465,15 @@ def sens_adjoint_int(fun, t_span, y0, jac, dfdp, dy0dp, p, g, dgdp, dgdy,
     Ny = y0.size
     if y0.ndim != 1:
         raise ValueError("`y0` should be a 1d array")
-    if y0.dtype != np.float:
-        raise ValueError("`y0` should have dtype float")
+    if y0.dtype != np.float64:
+        raise ValueError("`y0` should have dtype float64")
 
     p = np.asarray(p)
     Np = p.size
     if p.ndim != 1:
         raise ValueError("`p` should be a 1d array")
-    if p.dtype != np.float:
-        raise ValueError("`p` should have dtype float")
+    if p.dtype != np.float64:
+        raise ValueError("`p` should have dtype float64")
 
     dy0dp = np.asarray(dy0dp)
     if dy0dp.ndim != 2:

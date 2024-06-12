@@ -32,7 +32,7 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Me4`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc` and `SSV2stab`) can be used in a similar way.
+Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Me4`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc`, `SSV2stab`, `Fi4N`, `Fi5N`, `Mu5Nmb`, and `MR6NN`) can be used in a similar way.
 
 More examples are available as notebooks (update needed):
 1. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve_ivp.ipynb)
@@ -43,11 +43,13 @@ More examples are available as notebooks (update needed):
 6. [Special method `SSV2stab` for large, mildly stiff problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_SSV2stab.ipynb)
 7. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
 8. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
-9. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
-10. [How to implement other explicit Runge Kutta methods](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_own_RK.ipynb)
+9. [Runge Kutta Nyström methods for second order equations](docs/Demo_Nystrom.ipynb)
+10. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
+11. [How to implement other explicit Runge Kutta methods](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_own_RK.ipynb)
 
 
 ## Methods
+
 Currently, several explicit methods (for non-stiff problems) are provided.
 
 One multistep method is implemented:
@@ -73,13 +75,17 @@ Three methods for specific types of problems are available:
 * `CFMR7osc`: explicit Runge Kutta method, with algebraic order 7, dispersion order 10 and dissipation order 9, to efficiently and accurately solve problems with oscillating solutions [12]. A free 5th order interpolant for dense output is added.
 * `SSV2stab`: second order stabilized Runge Kutta Chebyshev method [13,C], to explicity and efficiently solve large systems of mildly stiff ordinary differential equations up to low to moderate accuracy. Equations arising from semi-discretization of parabolic PDEs are a typical use case.
 
+Several Nystrom methods are added. These are for second order initial value problems. Three methods are for general problems and one is for the strict problem in which the second derivative should not depend on the first derivative. The [demo](docs/Demo_Nystrom.ipynb) shows how to use these methods.
+* `Fi4N`: 4th order general Nystrom method of Fine [16].
+* `Fi5N`: 5th order general Nystrom method of Fine [16, 17].
+* `Mu5Nmb`: 5th order general Nystrom method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
+* `MR6NN`: 6th order strict Nystrom method of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method.
 
 ## Sensitivity analysis
-Three methods for sensitivity analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
+Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
 * `sens_forward`: to calculate the sensitivity of all solution components to (a few) parameters.
 * `sens_adjoint_end`: to calculate the sensitivity of a scalar function of the solution to (many) parameters.
 * `sens_adjoint_int`: to calculate the sensitivity of a scalar integral of the solution to (many) parameters.
-
 
 ## Other features
 The initial step size, when not supplied by you, is estimated using the method of Watts [7,B]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
@@ -87,7 +93,6 @@ The initial step size, when not supplied by you, is estimated using the method o
 Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8,A] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
 Second order stepsize controllers [9-11] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
-
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28. https://doi.org/10.1016/0898-1221(96)00141-1
@@ -120,7 +125,17 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 
 [15] R.Serban, A.C. Hindmarsh, "CVODES: The Sensitivity-Enabled ODE Solver in SUNDIALS", 5th International Conference on Multibody Systems Nonlinear Dynamics and Control, Vol. 6, 2005, https://doi.org/10.1115/DETC2005-85597
 
+[16] J.M. Fine, "Low order practical Runge-Kutta-Nyström methods", Computing, Vol. 38, 1987, pp. 281–297, https://doi.org/10.1007/BF02278707
+
+[17] J.M. Fine, "Interpolants for Runge-Kutta-Nyström methods", Computing, Vol. 39, 1987, pp. 27–42, https://doi.org/10.1007/BF02307711
+
+[18] A. Murua, "Runge-Kutta-Nyström methods for general second order ODEs with application to multi-body systems", Applied Numerical Mathematics, Vol. 28, Issues 2–4, 1998, pp. 387-399, https://doi.org/10.1016/S0168-9274(98)00055-5
+
+[19] M. El-Mikkawy, E.D. Rahmo, "A new optimized non-FSAL embedded Runge–Kutta–Nystrom algorithm of orders 6 and 4 in six stages", Applied Mathematics and Computation, Vol. 145, Issue 1, 2003, pp. 33-43, https://doi.org/10.1016/S0096-3003(02)00436-8
+
+
 ## Original source codes (Fortran)
+
 [A] RKSuite, R.W. Brankin,  I. Gladwell,  L.F. Shampine. https://www.netlib.org/ode/rksuite/
 
 [B] DDEABM, L.F. Shampine, H.A. Watts, M.K. Gordon. https://www.netlib.org/slatec/src/

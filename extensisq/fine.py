@@ -56,6 +56,15 @@ class Fi4N(RungeKuttaNystrom):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
     sc_params : tuple of size 4, "standard", "G", "H" or "W", optional
         Parameters for the stepsize controller (k*b1, k*b2, a2, g). The step
         size controller is, with k the exponent of the standard controller,
@@ -77,6 +86,10 @@ class Fi4N(RungeKuttaNystrom):
     order = 4
     error_estimator_order = 3
     sc_params = "G"
+
+    tanang = 40.
+    stbre = 1.5
+    stbim = 4.
 
     C = np.array([0, 2/9, 1/3, 3/4, 1])
     A = np.array([[0, 0, 0, 0, 0],
@@ -150,6 +163,15 @@ class Fi5N(RungeKuttaNystrom):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
     sc_params : tuple of size 4, "standard", "G", "H" or "W", optional
         Parameters for the stepsize controller (k*b1, k*b2, a2, g). The step
         size controller is, with k the exponent of the standard controller,
@@ -193,6 +215,10 @@ class Fi5N(RungeKuttaNystrom):
     order = 5
     error_estimator_order = 4
     sc_params = "G"
+
+    tanang = 15.
+    stbre = 2.0
+    stbim = 4.0
 
     C = np.array([0, 8/39, 4/13, 5/6, 43/47, 1])
     A = np.array([[0, 0, 0, 0, 0, 0],

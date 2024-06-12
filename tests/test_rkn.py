@@ -2,12 +2,12 @@ import pytest
 from numpy.testing import assert_, assert_allclose, assert_equal
 from scipy.integrate import solve_ivp
 import numpy as np
-from extensisq import Fi4N, Fi5N, Mu5Nmb
+from extensisq import Fi4N, Fi5N, Mu5Nmb, MR6NN
 from extensisq.common import norm
 from itertools import product
 
 
-METHODS = [Fi4N, Fi5N, Mu5Nmb]
+METHODS = [Fi4N, Fi5N, Mu5Nmb, MR6NN]
 
 
 def fun_linear(t, y):
@@ -38,7 +38,8 @@ def test_coefficient_properties(solver):
     assert_allclose(np.sum(solver.Bp), 1, rtol=1e-13)
     assert_allclose(np.sum(solver.E), 0, atol=1e-13)
     assert_allclose(np.sum(solver.Ep), 0, atol=1e-13)
-    assert_allclose(np.sum(solver.Ap, axis=1), solver.C, rtol=1e-13)
+    if solver.Ap is not NotImplemented:
+        assert_allclose(np.sum(solver.Ap, axis=1), solver.C, rtol=1e-13)
     assert_allclose(np.sum(solver.A, axis=1), 0.5*solver.C**2, rtol=1e-13)
 
 
@@ -85,8 +86,8 @@ def test_integration(method):
         assert_(res.success)
         assert_equal(res.status, 0)
 
-        if method == Mu5Nmb:
-            # Mu5Nmb has a relatively low error, with relatively many evals
+        if method in (Mu5Nmb, MR6NN):
+            # These have relatively low errors, with relatively many evals
             assert_(res.nfev < 130)
         else:
             assert_(res.nfev < 60)

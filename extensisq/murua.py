@@ -6,7 +6,7 @@ from extensisq.common import (
 class Mu5Nmb(RungeKuttaNystrom):
     """Explicit Runge-Kutta Nystrom (general) method by Murua [1]_ of order 5.
     This method is applicable to second order initial value problems only. The
-    idea is to repeat the postion across several stage (but vary velocity).
+    idea is to repeat the postion across several stages (but vary velocity).
     This allows for efficient integration of multibody equations.
 
     The second order problem should be recast in first order form as
@@ -60,6 +60,15 @@ class Mu5Nmb(RungeKuttaNystrom):
     vectorized : bool, optional
         Whether `fun` is implemented in a vectorized fashion. A vectorized
         implementation offers no advantages for this solver. Default is False.
+    nfev_stiff_detect : int, optional
+        Number of function evaluations for stiffness detection. This number has
+        multiple purposes. If it is set to 0, then stiffness detection is
+        disabled. For other (positive) values it is used to represent a
+        'considerable' number of function evaluations (nfev). A stiffness test
+        is done if many steps fail and each time nfev exceeds integer multiples
+        of `nfev_stiff_detect`. For the assessment itself, the problem is
+        assessed as non-stiff if the predicted nfev to complete the integration
+        is lower than `nfev_stiff_detect`. The default value is 5000.
     sc_params : tuple of size 4, "standard", "G", "H" or "W", optional
         Parameters for the stepsize controller (k*b1, k*b2, a2, g). The step
         size controller is, with k the exponent of the standard controller,
@@ -72,13 +81,15 @@ class Mu5Nmb(RungeKuttaNystrom):
         The default for this method is "G".
     interpolant : "free" or "better"
         Select the interpolant for dense output.
-        Option "free" is for the 4th order accurate interpolant that is the 5th
-        order hermite polynomial that satisfies C2 continuity at the solution
-        points. This free interpolant satisfies the RKN order conditions up to
-        order 4 and requires no extra function evaluations.
-        Option "better" is for the 5th order accurate  interpolant that needs 1
-        extra function evaluation.
-        Default: "free".
+        Option "free" is for the 5th order hermite polynomial that satisfies C2
+        continuity at the solution points. This free interpolant satisfies the
+        RKN order conditions up to order 4 and requires no extra function
+        evaluations. The "better" interpolant has teh same RKN order as the
+        free interpolant, but is much more accurate. The better interpolant
+        needs one extra function evaluation. Default: "better".
+    scale_embedded : bool
+        reduce the sensitivity of error estimate from the embedded method.
+        Default: True
 
     References
     ----------
@@ -91,6 +102,10 @@ class Mu5Nmb(RungeKuttaNystrom):
     order = 5
     error_estimator_order = 4
     sc_params = "G"
+
+    tanang = 100.
+    stbre = 2.9
+    stbim = 4.75
 
     C = np.array([0, 771/3847, 771/3847, 3051/6788, 4331/6516, 4331/6516,
                   10463/11400, 10463/11400, 1])
@@ -187,10 +202,10 @@ class Mu5Nmb(RungeKuttaNystrom):
          -365857908/8242174145],
         [0, -1/6, 1, -3/2, 2/3],
         [0, -8/3, 8, -8, 8/3]])
-    Pp_better = P_better * np.arange(2, 7)    # derivative of P_low
+    Pp_better = P_better * np.arange(2, 7)    # derivative of P_better
 
     def __init__(self, fun, t0, y0, t_bound,
-                 interpolant='better', **extraneous):
+                 interpolant='better', scale_embedded=True, **extraneous):
         super().__init__(fun, t0, y0, t_bound, **extraneous)
         # custom initialization to create extended storage for dense output
         if interpolant not in ('better', 'free'):
@@ -201,6 +216,10 @@ class Mu5Nmb(RungeKuttaNystrom):
             self.K_extended = np.zeros((
                 self.n_stages + 2, self.n), dtype=self.y.dtype)
             self.K = self.K_extended[:self.n_stages+1]
+        if scale_embedded:
+            factor = 0.75
+            self.E *= factor
+            self.Ep *= factor
 
     def _dense_output_impl(self):
         if self.interpolant == 'free':
