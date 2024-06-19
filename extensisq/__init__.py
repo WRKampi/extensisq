@@ -12,12 +12,13 @@ from extensisq.sommeijer import SSV2stab
 from extensisq.merson import Me4
 from extensisq.fine import Fi4N, Fi5N
 from extensisq.murua import Mu5Nmb
+from extensisq.mikkawy import MR6NN
 from extensisq.sensitivity import (sens_forward, sens_adjoint_end,
                                    sens_adjoint_int)
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __author__ = 'W.R. Kampinga'
-__copyright__ = 'Copyright 2020, W.R. Kampinga'
+__copyright__ = 'Copyright 2024, W.R. Kampinga'
 __license__ = 'MIT'
 __credits__ = (
     'scipy', 'L.F Shampine', 'P. Bogacki', 'R.W. Brankin', 'I. Gladwell',
@@ -25,4 +26,4 @@ __credits__ = (
     'M.K. Gordon', 'G. Soederlind', 'K. Gustafsson', 'M. Calvo', 'J.M. Franco',
     'J.I. Montijano', 'L. Randez', 'B.P. Sommeijer', 'J.G. Verwer',
     'E. Hairer', 'A.C. Hindmarsh', 'R. Serban', 'R.H. Merson', 'J.M. Fine',
-    'A. Murua')
+    'A. Murua', 'M. El-Mikkawy', 'E.D. Rahmo')
