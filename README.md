@@ -17,7 +17,7 @@ You can install extensisq from [PyPI](https://pypi.org/project/extensisq/):
 
 Or, if you'd rather use [conda](https://anaconda.org/conda-forge/extensisq):
 
-    conda install -c conda-forge extensisq
+    conda install conda-forge::extensisq
 
 
 ## Example
@@ -34,7 +34,7 @@ Borrowed from the the scipy documentation:
 
 Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Me4`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc`, `SSV2stab`, `Fi4N`, `Fi5N`, `Mu5Nmb`, and `MR6NN`) can be used in a similar way.
 
-More examples are available as notebooks (update needed):
+More examples are available as notebooks:
 1. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve_ivp.ipynb)
 2. [About `BS5` and its interpolants](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_BS5.ipynb)
 3. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
