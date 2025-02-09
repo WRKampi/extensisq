@@ -21,7 +21,7 @@ from extensisq.sensitivity import (sens_forward, sens_adjoint_end,
 
 __version__ = '0.6.0'
 __author__ = 'W.R. Kampinga'
-__copyright__ = 'Copyright 2024, W.R. Kampinga'
+__copyright__ = 'Copyright 2025, W.R. Kampinga'
 __license__ = 'MIT'
 __credits__ = (
     'scipy', 'L.F Shampine', 'P. Bogacki', 'R.W. Brankin', 'I. Gladwell',
