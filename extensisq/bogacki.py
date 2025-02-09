@@ -70,10 +70,11 @@ class BS5(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
-        The default for this method is "W".
+        Predefined parameters are [3]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
+        The default for this method is "standard".
     interpolant : 'best', 'low' or 'free', optional
         Select the interpolant for dense output. The option 'best' is for the
         accurate fifth order interpolant described in [1], which needs 3 extra
@@ -94,15 +95,18 @@ class BS5(RungeKutta):
            pp. 15-28.
            https://doi.org/10.1016/0898-1221(96)00141-1
     .. [2] RKSUITE: https://www.netlib.org/ode/rksuite/
+    .. [3] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     order = 5
-    error_estimator_order = 4
+    order_secondary = 4
     n_stages = 7            # the effective nr (total nr of stages is 8)
     n_extra_stages = 3      # for dense output
     tanang = 5.2
     stbrad = 3.9
-    sc_params = "W"
+    sc_params = "standard"
 
     # time step fractions
     C = np.array([0, 1/6, 2/9, 3/7, 2/3, 3/4, 1])

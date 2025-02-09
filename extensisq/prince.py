@@ -60,21 +60,24 @@ class Pr7(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "S".
 
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
            Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
-           September 6 2018.
-           http://www.peteprince.co.uk/parallel.pdf
+           September 6 2018. http://www.peteprince.co.uk/parallel.pdf
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     order = 7
-    error_estimator_order = 5
+    order_secondary = 5
     n_stages = 10
     tanang = 7.5
     stbrad = 4.1
@@ -183,21 +186,24 @@ class Pr8(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
 
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
            Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
-           September 6 2018.
-           http://www.peteprince.co.uk/parallel.pdf
+           September 6 2018. http://www.peteprince.co.uk/parallel.pdf
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     order = 8
-    error_estimator_order = 6
+    order_secondary = 6
     n_stages = 13
     tanang = 6.0
     stbrad = 4.5
@@ -424,21 +430,24 @@ class Pr9(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "standard".
 
     References
     ----------
     .. [1] P.J. Prince, "Parallel Derivation of Efficient Continuous/Discrete
            Explicit Runge-Kutta Methods", Guisborough TS14 6NP U.K.,
-           September 6 2018.
-           http://www.peteprince.co.uk/parallel.pdf
+           September 6 2018. http://www.peteprince.co.uk/parallel.pdf
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     order = 9
-    error_estimator_order = 7
+    order_secondary = 7
     n_stages = 17
     tanang = 7.5
     stbrad = 4.6

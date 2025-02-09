@@ -68,21 +68,25 @@ class MR6NN(RungeKuttaNystrom):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
 
     References
     ----------
     .. [1] M. El-Mikkawy, E.D. Rahmo, "A new optimized non-FSAL embedded
-           Runge–Kutta–Nystrom algorithm of orders 6 and 4 in six stages",
+           Runge-Kutta-Nystrom algorithm of orders 6 and 4 in six stages",
            Applied Mathematics and Computation, Vol. 145, Issue 1, 2003,
            pp. 33-43, https://doi.org/10.1016/S0096-3003(02)00436-8
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
     n_stages = 6
     order = 6
-    error_estimator_order = 4
+    order_secondary = 4
     sc_params = "G"
 
     C = np.array([0, 1/77, 1/3, 2/3, 13/15, 1])
@@ -121,4 +125,4 @@ class MR6NN(RungeKuttaNystrom):
         [0, 228125/410176, -1790625/820352, 2184375/820352, -415625/410176],
         [0, 847/1824, -5929/3648, 11011/6080, -5929/9120],
         [0, -2/3, 5/2, -3, 7/6]])
-    Pp = P * np.arange(2, 7)    # derivative of P_better
+    Pp = P * np.arange(2, 7)    # derivative of P

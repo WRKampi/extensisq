@@ -63,9 +63,10 @@ class Ts5(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
 
     References
@@ -74,10 +75,13 @@ class Ts5(RungeKutta):
            first column simplifying assumption", Computers & Mathematics with
            Applications, Vol. 62, No. 2, pp. 770 - 775, 2011.
            https://doi.org/10.1016/j.camwa.2011.06.002
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     order = 5
-    error_estimator_order = 4
+    order_secondary = 4
     n_stages = 6        # effective nr
     tanang = 3.0
     stbrad = 3.5

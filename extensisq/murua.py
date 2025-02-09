@@ -75,9 +75,10 @@ class Mu5Nmb(RungeKuttaNystrom):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
     interpolant : "free" or "better"
         Select the interpolant for dense output.
@@ -97,10 +98,13 @@ class Mu5Nmb(RungeKuttaNystrom):
            with application to multi-body systems", Applied Numerical
            Mathematics, Vol. 28, 1998, pp. 387-399.
            https://doi.org/10.1016/S0168-9274(98)00055-5
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
     n_stages = 9
     order = 5
-    error_estimator_order = 4
+    order_secondary = 4
     sc_params = "G"
 
     tanang = 100.

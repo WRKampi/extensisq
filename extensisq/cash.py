@@ -81,7 +81,7 @@ class CK5(RungeKutta):
 
     n_stages = 6
     order = 5
-    error_estimator_order = 4
+    order_secondary = 4
     tanang = 2.4
     stbrad = 3.7
     sc_params = "G"
@@ -186,7 +186,7 @@ class CKdisc(RungeKutta):
 
     n_stages = 6                                              # for main method
     order = 5                                                 # for main method
-    error_estimator_order = 4                                 # for main method
+    order_secondary = 4                                 # for main method
     max_factor = 5
     min_factor = 1/5
 

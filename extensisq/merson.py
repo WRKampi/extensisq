@@ -3,9 +3,9 @@ from extensisq.common import RungeKutta
 
 
 class Me4(RungeKutta):
-    """Merson's explicit Runge-Kutta method of order 4, with an embedded method
-    for error estimation of order 3 (or 5 for linear time invariant problems)
-    and a free interpolant of order 3 (4th order polynomial).
+    """Merson's explicit Runge-Kutta method [1]_ of order 4, with an embedded
+    method for error estimation of order 3 (or 5 for linear time invariant
+    problems) and a free interpolant of order 3 (4th order polynomial).
 
     This is the oldest embedded Runge-Kutta method. It has a large stability
     domain for a 4th order method, especially on the imaginary axis.
@@ -63,10 +63,20 @@ class Me4(RungeKutta):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
+
+    References
+    ----------
+    .. [1] E. Hairer, G. Wanner, S.P. Norsett, "Solving Ordinary Differential
+           Equations I", Springer Berlin, Heidelberg, 1993,
+           https://doi.org/10.1007/978-3-540-78862-1
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
 
     # effective number of stages
@@ -76,7 +86,7 @@ class Me4(RungeKutta):
     order = 4
 
     # order of the secondary embedded method
-    error_estimator_order = 3
+    order_secondary = 3
 
     # time fraction coefficients (nodes)
     C = np.array([0, 1/3, 1/3, 1/2, 1])

@@ -71,9 +71,10 @@ class Fi4N(RungeKuttaNystrom):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [2]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
 
     References
@@ -81,10 +82,13 @@ class Fi4N(RungeKuttaNystrom):
     .. [1] J.M. Fine, "Low order practical Runge-Kutta-Nyström methods",
            Computing, Vol. 38, 1987, pp. 281-297.
            https://doi.org/10.1007/BF02278707
+    .. [2] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
     n_stages = 5
     order = 4
-    error_estimator_order = 3
+    order_secondary = 3
     sc_params = "G"
 
     tanang = 40.
@@ -178,9 +182,10 @@ class Fi5N(RungeKuttaNystrom):
         _n for new and _o for old:
             h_n = h * g**(k*b1 + k*b2) * (h/h_o)**-a2
                 * (err/tol)**-b1 * (err_o/tol_o)**-b2
-        Predefined parameters are:
-            Gustafsson "G" (0.7, -0.4, 0, 0.9),  Watts "W" (2, -1, -1, 0.8),
-            Soederlind "S" (0.6, -0.2, 0, 0.9),  and "standard" (1, 0, 0, 0.9).
+        Predefined parameters are [3]_:
+            Gustafsson "G" (0.7, -0.4, 0, 0.9),
+            Soederlind "S" (0.6, -0.2, 0, 0.9),
+            and "standard" (1, 0, 0, 0.9).
         The default for this method is "G".
     interpolant : int: 0, 1, 2 or 3
         Select the interpolant for dense output.
@@ -207,13 +212,16 @@ class Fi5N(RungeKuttaNystrom):
     .. [1] J.M. Fine, "Low order practical Runge-Kutta-Nyström methods",
            Computing, Vol. 38, 1987, pp. 281-297.
            https://doi.org/10.1007/BF02278707
-    ..[2] J.M. Fine, "Interpolants for Runge-Kutta-Nyström Methods",
-          Computing, Vol. 39, 1987, pp. 27-42.
-          https://doi.org/10.1007/BF02307711
+    .. [2] J.M. Fine, "Interpolants for Runge-Kutta-Nyström Methods",
+           Computing, Vol. 39, 1987, pp. 27-42.
+           https://doi.org/10.1007/BF02307711
+    .. [3] G.Söderlind, "Automatic Control and Adaptive Time-Stepping",
+           Numerical Algorithms, Vol. 31, No. 1, 2002, pp. 281-310.
+           https://doi.org/10.1023/A:1021160023092
     """
     n_stages = 6
     order = 5
-    error_estimator_order = 4
+    order_secondary = 4
     sc_params = "G"
 
     tanang = 15.
