@@ -96,7 +96,7 @@ Three methods of Kennedy and Carpenter are available. These have L-stable main a
 * `KC4Ia`: this 7-stage method, named ESDIRK4(3)7L[2]SA in [23], is similar to the previous method, but has an additional stage each step. This results in lower error constants and a lower value of the RK diagonal coefficient (1/8 vs. 1/4).
 
 One method of Kværnø is implemented:
-* `Kv3I`: a 4 stage 3rd order method with 2nd order secondary method [24]. Both are stiffly accurate. The main method is L-stable and the secondary method is only A-stable. The only interpolant for this method is C0-continuous.
+* `Kv3I`: a 4 stage 3rd order method with 2nd order secondary method [24]. Both are stiffly accurate. The main method is L-stable and the secondary method is only A-stable. This method also has two interpolants: C0 and C1-continuous.
 
 ### Index 1 DAEs
 
