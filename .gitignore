@@ -138,3 +138,4 @@ test.py
 test_stiff.py
 test_dense_output.py
 test Nystrom methods.py
+docs/SC stability
