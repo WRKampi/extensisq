@@ -32,23 +32,24 @@ Borrowed from the the scipy documentation:
     print(sol.t)
     print(sol.y)
 
-Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods (`SWAG`, `CK5`, `Ts5`, `Me4`, `Pr7`, `Pr8`, `Pr9`, `CKdisc`, `CFMR7osc`, `SSV2stab`, `Fi4N`, `Fi5N`, `Mu5Nmb`, and `MR6NN`) can be used in a similar way.
+Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. The other methods can be used similarly.
 
 More examples are available as notebooks:
 1. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve_ivp.ipynb)
-2. [About `BS5` and its interpolants](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_BS5.ipynb)
-3. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
-4. [Special method `CKdisc` for non-smooth problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CKdisc.ipynb)
-5. [Special method `CFMR7osc` for oscillatory problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CFMR7osc.ipynb)
-6. [Special method `SSV2stab` for large, mildly stiff problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_SSV2stab.ipynb)
-7. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
-8. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
-9. [Runge Kutta Nyström methods for second order equations](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb)
-10. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
+2. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
+3. [Implicit methods for stiff ODEs and DAEs](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_ESDIRK.ipynb)
+4. [About `BS5` and its interpolants](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_BS5.ipynb)
+5. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
+6. [Special method `CKdisc` for non-smooth problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CKdisc.ipynb)
+7. [Special method `CFMR7osc` for oscillatory problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_CFMR7osc.ipynb)
+8. [Special method `SSV2stab` for large, mildly stiff problems](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_SSV2stab.ipynb)
+9. [Fifth order methods compared](https://github.com/WRKampi/extensisq/blob/main/docs/all_methods.ipynb)
+10. [Runge Kutta Nyström methods for second order equations](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_Nystrom.ipynb)
 11. [How to implement other explicit Runge Kutta methods](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_own_RK.ipynb)
+12. [Sensitivity analysis](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_sensitivity.ipynb)
 
 
-## Methods
+## Explicit Methods
 
 Currently, several explicit methods (for non-stiff problems) are provided.
 
@@ -81,6 +82,31 @@ Several Nyström methods are added. These are for second order initial value pro
 * `Mu5Nmb`: 5th order general Nyström method of Murua for integration of multibody equations. This is method "RKN5459" in the paper [18]. I added two interpolants.
 * `MR6NN`: 6th order strict Nyström method of El-Mikkawy and Rahmo [19]. I couldn't find the interpolant that the paper refers to as future work. However, I created a free C2-continuous sixth order interpolant and added it to this method.
 
+## Implicit methods
+
+Several ESDIRK methods are implemented. These are single step Runge Kutta methods. The implementation is inspired by the theory in a paper of Shampine [20].
+
+Two methods of Hosea and Shampine [21] are available:
+* `HS2I` or `TRBDF2` (alias):  A 2nd order L-stable method (main, not secondary) that splits the step into a trapezium substep followed by a BDF substep. A 3rd order embedded method is used for error detection and stepsize adaptation. This method has a piecewise cubic C1-continuous interpolant. The main method has a rich history and was created by Banks et al.
+* `HS2Ia` or `TRX2` (alias): An alternative 2nd order method with a similar construction that uses two trapezium substeps. This method is A-stable (not L-stable) and may be useful if numerical damping is undesirable.
+
+Three methods of Kennedy and Carpenter are available. These have L-stable main and secondary methods. Each method includes two interpolants of the same order as the main method. One interpolant is C0-continuous (continuous solution, but derivatives jump between steps), the other is C1-continuous (solution and derivatives are both continuous). The C0-interpolant is selected by default.
+* `KC3I`: a 5-stage, 3rd order method with 2nd order secondary method called ESDIRK3(2)5L[2]SA by its authors[22]. The interpolant in the paper is not used, because it doesn't seem to be C0-continuous.
+* `KC4I`: a 6-stage, 4th order method with 3rd order secondary method called ESDIRK4(3)6L[2]SA by its authors[22]. The C0-continuous interpolant is as given in the paper.
+* `KC4Ia`: this 7-stage method, named ESDIRK4(3)7L[2]SA in [23], is similar to the previous method, but has an additional stage each step. This results in lower error constants and a lower value of the RK diagonal coefficient (1/8 vs. 1/4).
+
+One method of Kværnø is implemented:
+* `Kv3I`: a 4 stage 3rd order method with 2nd order secondary method [24]. Both are stiffly accurate. The main method is L-stable and the secondary method is only A-stable. The only interpolant for this method is C0-continuous.
+
+### Index 1 DAEs
+
+The Implicit methods in Extensisq have limited options to solve DAEs. These can be specified in mass matrix form:
+
+$$ M \dot{y}=f(t, y) $$
+
+This looks similar to an ODE, but if $M$ is singular, it becomes a DAE. Extensisq only supports IVPs with a constant mass matrix and the DAE must be index 1.
+
+
 ## Sensitivity analysis
 Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
 * `sens_forward`: to calculate the sensitivity of all solution components to (a few) parameters.
@@ -90,9 +116,9 @@ Three methods for sensitiviy analysis are available; see [15] and Example 9 abov
 ## Other features
 The initial step size, when not supplied by you, is estimated using the method of Watts [7,B]. This method analyzes your problem with a few (3 to 4) evaluations and carefully estimates a safe stepsize to start the integration with.
 
-Most of extensisq's Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8,A] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
+Most of extensisq's explicit Runge Kutta methods have stiffness detection. If many steps fail, or if the integration needs a lot of steps, the power iteration method of Shampine [8,A] is used to test your problem for stiffness. You will get a warning if your problem is diagnosed as stiff. The kind of roots (real, complex or nearly imaginary) is also reported, such that you can select a stiff solver that better suits your problem.
 
-Second order stepsize controllers [9-11] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values.
+Second order stepsize controllers [9-11] can be enabled for most of extensisq's Runge Kutta methods. You can set your own coefficients, or select one of the default values. These values are different for explicit methods than for implicit methods.
 
 ## References
 [1] P. Bogacki, L.F. Shampine, "An efficient Runge-Kutta (4,5) pair", Computers & Mathematics with Applications, Vol. 32, No. 6, 1996, pp. 15-28. https://doi.org/10.1016/0898-1221(96)00141-1
@@ -133,6 +159,16 @@ Second order stepsize controllers [9-11] can be enabled for most of extensisq's 
 
 [19] M. El-Mikkawy, E.D. Rahmo, "A new optimized non-FSAL embedded Runge–Kutta–Nystrom algorithm of orders 6 and 4 in six stages", Applied Mathematics and Computation, Vol. 145, Issue 1, 2003, pp. 33-43, https://doi.org/10.1016/S0096-3003(02)00436-8
 
+[20] L. F. Shampine, "Implementation of Implicit Formulas for the Solution of ODEs", SIAM Journal on Scientific and Statistical Computing, Vol 1, No. 1, pp. 103-118, 1980, https://doi.org/10.1137/0901005.
+
+[21] M.E. Hosea, L.F. Shampine, "Analysis and implementation of TR-BDF2", Applied Numerical Mathematics, Vol. 20, No. 1-2, pp. 21-37, 1996, https://doi.org/10.1016/0168-9274(95)00115-8.
+
+[22] C. A. Kennedy, M.H. Carpenter, "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential Equations. A Review", Langley Research Center, document ID 20160005923, https://ntrs.nasa.gov/citations/20160005923.
+
+[23] C. A. Kennedy, M.H. Carpenter, "Diagonally implicit Runge-Kutta methods for stiff ODEs", Applied Numerical Mathematics, Vol. 146, pp. 221-244, 2019, https://doi.org/10.1016/j.apnum.2019.07.008.
+
+[24] A. Kværnø, "Singly Diagonally Implicit Runge-Kutta Methods with an Explicit First Stage", BIT Numerical Mathematics, Vol. 44, pp. 489-502, 2004, https://doi.org/10.1023/B:BITN.0000046811.70614.38
+    
 
 ## Original source codes (Fortran)
 

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="extensisq",
-    version="0.5.0",
+    version="0.6.0",
     author="W.R. Kampinga",
     author_email='wrkampi@tuta.io',
     description="Extend scipy.integrate with various methods for solve_ivp",
@@ -14,15 +14,16 @@ setuptools.setup(
     url="https://github.com/WRKampi/extensisq",
     packages=setuptools.find_packages(),
     install_requires=[
-        "numpy>=1.22.0",
-        "scipy>=1.8.0",
+        "numpy>=1.26.0",
+        "scipy>=1.15.0",
     ],
     keywords=[
         'ode', 'ode-solver', 'ivp', 'ivp-methods', 'scipy', 'scipy-integrate',
         'runge-kutta', 'runge-kutta-nystrom', 'differential-equations',
         'cash-karp', 'prince', 'bogacki-shampine', 'adams', 'shampine-gordon',
         'adams-bashforth-moulton', 'ode113', 'predictor-corrector', 'solver',
-        'sensitivity', 'sensitivity-analysis'
+        'sensitivity', 'sensitivity-analysis', 'trbdf2', 'trx2', 'esdirk',
+        'dae'
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
