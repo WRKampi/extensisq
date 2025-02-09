@@ -5,6 +5,7 @@ import numpy as np
 from extensisq import Fi4N, Fi5N, Mu5Nmb, MR6NN
 from extensisq.common import norm
 from itertools import product
+from order_conditions import calc_Ts_norm
 
 
 METHODS = [Fi4N, Fi5N, Mu5Nmb, MR6NN]
@@ -30,6 +31,54 @@ def compute_error(y, y_true, rtol, atol):
 
 
 y0 = [0, 1]
+
+@pytest.mark.parametrize("solver", METHODS)
+def test_orders(solver):
+    # main method
+    if solver is MR6NN:
+        # order conditions of the strict Nystrom method are not implemented
+        return
+    # secondary method
+    for i in range(solver.order):
+        if i+1 > 7:   # skip higher order tests, not implemented yet
+            return
+        _norm, _normp = calc_Ts_norm(i+1, solver.Bp, solver.C, solver.Ap,
+                             alpha=solver.A, beta=solver.B)
+        print(_norm, _normp)
+        assert_(_normp < solver.n_stages*1e-14)
+        if i+1 < solver.order:
+            assert_(_norm < solver.n_stages*1e-14)
+    for i in range(solver.order_secondary):
+        if i+1 > 7:   # skip higher order tests, not implemented yet
+            return
+        E = solver.Ep
+        B = solver.Bp
+        epsilon = solver.E
+        beta = solver.B
+        if E.size == B.size:
+            Bh = E + B
+            betah = epsilon + beta
+            A = solver.Ap
+            alpha = solver.A
+            C = solver.C
+        else:
+            A = np.zeros([E.size, E.size])
+            A[:B.size, :B.size] = solver.Ap
+            A[-1, :-1] = B
+            alpha = np.zeros([E.size, E.size])
+            alpha[:B.size, :B.size] = solver.A
+            alpha[-1, :-1] = beta
+            Bh = E.copy()
+            Bh[:-1] += B
+            betah = epsilon.copy()
+            betah[:-1] += beta
+            C = np.ones(E.size)
+            C[:-1] = solver.C
+        _norm, _normp = calc_Ts_norm(i+1, Bh, C, A, alpha=alpha, beta=betah)
+        print(_norm, _normp)
+        assert_(_normp < solver.n_stages*1e-14)
+        if i+1 < solver.order_secondary:
+            assert_(_norm < solver.n_stages*1e-14)
 
 
 @pytest.mark.parametrize("solver", METHODS)
