@@ -14,7 +14,7 @@ setuptools.setup(
     url="https://github.com/WRKampi/extensisq",
     packages=setuptools.find_packages(),
     install_requires=[
-        "numpy>=1.26.0",
+        "numpy>=2.2.0",
         "scipy>=1.15.0",
     ],
     keywords=[
@@ -36,6 +36,6 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Physics"
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.10',
     tests_require=['pytest']
 )
