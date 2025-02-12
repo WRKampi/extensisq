@@ -104,11 +104,11 @@ The Implicit methods in Extensisq have limited options to solve DAEs. These can 
 
 $$ M \dot{y}=f(t, y) $$
 
-This looks similar to an ODE, but if $M$ is singular, it becomes a DAE. Extensisq only supports IVPs with a constant mass matrix and the DAE must be index 1.
+This looks similar to an ODE, but if $M$ is singular, it becomes a DAE. Extensisq only supports IVPs with a constant mass matrix and the DAE index should not exceed 1. Example 3 above demonstrates how a DAE can be solved.
 
 
 ## Sensitivity analysis
-Three methods for sensitiviy analysis are available; see [15] and Example 9 above. These can be used with any of the solvers.
+Three methods for sensitiviy analysis are available; see [15] and Example 12 above. These can be used with any of the solvers.
 * `sens_forward`: to calculate the sensitivity of all solution components to (a few) parameters.
 * `sens_adjoint_end`: to calculate the sensitivity of a scalar function of the solution to (many) parameters.
 * `sens_adjoint_int`: to calculate the sensitivity of a scalar integral of the solution to (many) parameters.
