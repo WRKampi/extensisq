@@ -36,7 +36,7 @@ Notice that the class `BS5` is passed to `solve_ivp`, not the string `"BS5"`. Th
 
 More examples are available as notebooks:
 1. [Integration with Scipy's `solve_ivp` function](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_solve_ivp.ipynb)
-2. [Van der Pol's equation, Shampine Gordon Watts method](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
+2. [Van der Pol's equation, Shampine Gordon Watts method `SWAG`](https://github.com/WRKampi/extensisq/blob/main/docs/Shampine_Gordon_Watts.ipynb)
 3. [Implicit methods for stiff ODEs and DAEs](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_ESDIRK.ipynb)
 4. [About `BS5` and its interpolants](https://github.com/WRKampi/extensisq/blob/main/docs/Demo_BS5.ipynb)
 5. [Higher order Prince methods `Pr7`, `Pr8` and `Pr9`](https://github.com/WRKampi/extensisq/blob/main/docs/Prince.ipynb)
@@ -54,7 +54,7 @@ More examples are available as notebooks:
 Currently, several explicit methods (for non-stiff problems) are provided.
 
 One multistep method is implemented:
-* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code `DDEABM` [C]. Matlab's method `ode113` is related.
+* `SWAG`: the variable order Adams-Bashforth-Moulton predictor-corrector method of Shampine, Gordon and Watts [5-7]. This is a translation of the Fortran code 'DDEABM' [C]. Matlab's method 'ode113' is related.
 
 Three explicit Runge Kutta methods of order 5 are implemented:
 * `BS5`: efficient fifth order method by Bogacki and Shampine [1,A]. Three interpolants are included: the original accurate fifth order interpolant, a lower cost fifth order one, and a 'free' fourth order one.
@@ -87,8 +87,8 @@ Several Nyström methods are added. These are for second order initial value pro
 Several ESDIRK methods are implemented. These are single step Runge Kutta methods. The implementation is inspired by the theory in a paper of Shampine [20].
 
 Two methods of Hosea and Shampine [21] are available:
-* `HS2I` or `TRBDF2` (alias):  A 2nd order L-stable method (main, not secondary) that splits the step into a trapezium substep followed by a BDF substep. A 3rd order embedded method is used for error detection and stepsize adaptation. This method has a piecewise cubic C1-continuous interpolant. The main method has a rich history and was created by Banks et al.
-* `HS2Ia` or `TRX2` (alias): An alternative 2nd order method with a similar construction that uses two trapezium substeps. This method is A-stable (not L-stable) and may be useful if numerical damping is undesirable.
+* `HS2I` or `TRBDF2` (alias):  A 2nd order L-stable method (main, not secondary) that splits the step into a trapezium substep followed by a BDF substep. A 3rd order embedded method is used for error detection and stepsize adaptation. This method has a piecewise cubic C1-continuous interpolant. The main method has a rich history and was created by Banks et al. Matlab's method 'ode23tb' is related.
+* `HS2Ia` or `TRX2` (alias): An alternative 2nd order method with a similar construction that uses two trapezium substeps. This method is A-stable (not L-stable) and may be useful if numerical damping is undesirable. Matlab's method 'ode23t' is related.
 
 Three methods of Kennedy and Carpenter are available. These have L-stable main and secondary methods. Each method includes two interpolants of the same order as the main method. One interpolant is C0-continuous (continuous solution, but derivatives jump between steps), the other is C1-continuous (solution and derivatives are both continuous). The C0-interpolant is selected by default.
 * `KC3I`: a 5-stage, 3rd order method with 2nd order secondary method called ESDIRK3(2)5L[2]SA by its authors[22]. The interpolant in the paper is not used, because it doesn't seem to be C0-continuous.
